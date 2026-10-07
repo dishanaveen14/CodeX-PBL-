@@ -38,7 +38,10 @@ typedef struct {
 #define RING_CAP     4096          /* entries in the ring buffer */
 #define BATCH_MAX    256           /* entries flushed per write */
 #define LOG_FILE     "sim.log"
-#define ROTATE_BYTES (1024 * 1024) /* rotate at 1 MB */
+/* ROTATE_BYTES is now a runtime variable (see g_rotate_bytes below).
+ * Default is 1 MB. Override with LOG_ROTATE_BYTES env var at startup.
+ * This lets tests set a huge threshold so rotation never fires mid-test. */
+#define ROTATE_BYTES_DEFAULT (1024 * 1024)
 #define ROTATE_KEEP  3             /* sim.log.1 .. sim.log.3 */
 
 /* ---------- ring buffer (mutex + 2 condvars) ---------- */
@@ -51,6 +54,7 @@ static pthread_cond_t  not_full  = PTHREAD_COND_INITIALIZER;
 
 static volatile sig_atomic_t g_stop;
 static unsigned long g_received, g_written;
+static long g_rotate_bytes;   /* set from LOG_ROTATE_BYTES env var in main() */
 
 static void on_signal(int s) { (void)s; g_stop = 1; }
 
@@ -146,7 +150,7 @@ static void *writer_thread(void *arg)
         fflush(f);                          /* one flush per batch */
         g_written += n;
 
-        if (ftell(f) >= ROTATE_BYTES) {
+        if (ftell(f) >= g_rotate_bytes) {
             f = rotate(f);
             if (!f) return NULL;
         }
@@ -158,6 +162,14 @@ static void *writer_thread(void *arg)
 /* ---------- main (acts as receiver thread) ---------- */
 int main(void)
 {
+    /* Read rotation threshold from environment; fall back to 1 MB default.
+     * Tests set LOG_ROTATE_BYTES=1000000000 so rotation never fires mid-run,
+     * allowing a line-count check on a single sim.log without extra rotated files. */
+    {
+        const char *env = getenv("LOG_ROTATE_BYTES");
+        g_rotate_bytes = (env && atol(env) > 0) ? atol(env) : ROTATE_BYTES_DEFAULT;
+    }
+
     struct sigaction sa;
     memset(&sa, 0, sizeof sa);
     sa.sa_handler = on_signal;              /* no SA_RESTART: wake mq calls */
