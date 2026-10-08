@@ -3,9 +3,7 @@ import socketserver
 import json
 import subprocess
 import threading
-import urllib.parse
 import os
-import time
 
 PORT = 8080
 UI_DIR = os.path.join(os.path.dirname(__file__), 'public')
@@ -42,13 +40,7 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=UI_DIR, **kwargs)
 
     def do_GET(self):
-        if self.path == '/api/state':
-            res = send_core_command("GET_STATE")
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({"state": res}).encode())
-        elif self.path == '/api/logs':
+        if self.path == '/api/logs':
             logs = []
             if os.path.exists(LOG_PATH):
                 with open(LOG_PATH, 'r') as f:

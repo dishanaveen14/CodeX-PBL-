@@ -1,85 +1,33 @@
 #!/usr/bin/env bash
-# run.sh  –  Build and run the Logger + Core together.
+# run.sh  –  Build and run the CodeX-PBL OS Simulation (IPC Addition Demo)
 #
 # Usage:
-#   chmod +x run.sh
-#   ./run.sh              # full demo (Logger + Core)
-#   ./run.sh test         # Logger robustness tests only
-#   ./run.sh test-core    # Core unit tests (with Logger)
-#   ./run.sh clean        # remove built binaries
+#   ./run.sh          # build and launch the UI server
+#   ./run.sh clean    # remove built binaries
 
 set -euo pipefail
 
-MODE="${1:-demo}"
+MODE="${1:-start}"
 
-build() {
-    echo "=== Building ==="
-    make all
-}
-
-case "$MODE" in
-demo)
-    build
-    echo ""
-    echo "=== Starting Logger (background) ==="
-    build/logger &
-    LOGGER_PID=$!
-    # Give the Logger a moment to create /sim_log
-    sleep 0.3
-    echo ""
-    echo "=== Running Core ==="
-    build/core/core
-    echo ""
-    echo "=== Sending Logger shutdown ==="
-    build/tests/test_sender shutdown
-    wait $LOGGER_PID
-    echo ""
-    echo "=== sim.log (last 30 lines) ==="
-    tail -30 sim.log 2>/dev/null || echo "(no sim.log found)"
-    ;;
-ui)
-    build
-    echo ""
-    echo "=== Starting Logger (background) ==="
-    build/logger &
-    LOGGER_PID=$!
-    sleep 0.3
-    echo ""
-    echo "=== Starting UI Server Bridge ==="
-    python3 ui/server.py
-    echo "=== Sending Logger shutdown ==="
-    build/tests/test_sender shutdown
-    wait $LOGGER_PID
-    ;;
-test)
-    make tests
-    echo ""
-    echo "=== Logger robustness tests ==="
-    make test
-    ;;
-test-core)
-    build
-    echo ""
-    echo "=== Starting Logger (background) ==="
-    build/logger &
-    LOGGER_PID=$!
-    sleep 0.3
-    echo ""
-    echo "=== Core unit tests ==="
-    build/core/test_driver
-    echo ""
-    echo "=== Sending Logger shutdown ==="
-    build/tests/test_sender shutdown
-    wait $LOGGER_PID
-    echo ""
-    echo "=== sim.log (last 40 lines) ==="
-    tail -40 sim.log 2>/dev/null || echo "(no sim.log found)"
-    ;;
-clean)
+if [ "$MODE" = "clean" ]; then
     make clean
-    ;;
-*)
-    echo "Usage: $0 [demo|ui|test|test-core|clean]"
-    exit 1
-    ;;
-esac
+    exit 0
+fi
+
+echo "=== Building Project ==="
+make all
+
+echo ""
+echo "=== Starting Logger (background) ==="
+build/logger &
+LOGGER_PID=$!
+sleep 0.3
+
+echo ""
+echo "=== Starting UI Server Bridge ==="
+echo "Navigate to http://localhost:8080"
+python3 ui/server.py
+
+echo "=== Sending Logger shutdown ==="
+build/tests/test_sender shutdown
+wait $LOGGER_PID
