@@ -69,11 +69,27 @@ Individual targets:
 
 ```bash
 chmod +x run.sh
-./run.sh              # build + Logger + Core demo + tail sim.log
+./run.sh ui           # ★ NEW: start Logger, Core, and Browser Dashboard
+./run.sh demo         # build + Logger + Core demo + tail sim.log
 ./run.sh test-core    # build + Logger + Core unit tests + tail sim.log
 ./run.sh test         # Logger robustness tests only
 ./run.sh clean        # clean build
 ```
+
+### Browser-based Dashboard
+
+You can now interact with the simulation via a modern web interface! Running `./run.sh ui` starts a lightweight Python server on `http://localhost:8080` which acts as a bridge:
+
+1. **Logger** starts in the background and writes to `sim.log`.
+2. **Core** starts in interactive mode and listens to `stdin`.
+3. **UI Bridge** (`ui/server.py`) serves the static web assets (`ui/public/`) and pipes JSON API commands over HTTP to the Core's `stdin`.
+
+Features available in the UI:
+- Execute CPU instructions on registers R0–R3
+- Read and Write to the flat memory map
+- Push/Pop to the stack and Enqueue/Dequeue to the queue
+- Trigger the Fork/Pipe addition IPC demo
+- Watch real-time log entries and subsystem states without reloading
 
 ### Manual startup
 

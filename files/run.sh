@@ -37,6 +37,20 @@ demo)
     echo "=== sim.log (last 30 lines) ==="
     tail -30 sim.log 2>/dev/null || echo "(no sim.log found)"
     ;;
+ui)
+    build
+    echo ""
+    echo "=== Starting Logger (background) ==="
+    build/logger &
+    LOGGER_PID=$!
+    sleep 0.3
+    echo ""
+    echo "=== Starting UI Server Bridge ==="
+    python3 ui/server.py
+    echo "=== Sending Logger shutdown ==="
+    build/tests/test_sender shutdown
+    wait $LOGGER_PID
+    ;;
 test)
     make tests
     echo ""
@@ -65,7 +79,7 @@ clean)
     make clean
     ;;
 *)
-    echo "Usage: $0 [demo|test|test-core|clean]"
+    echo "Usage: $0 [demo|ui|test|test-core|clean]"
     exit 1
     ;;
 esac

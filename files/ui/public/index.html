@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeX-PBL OS Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">CodeX-PBL <span>OS Simulator</span></div>
+        <div class="status-bar">
+            <span class="badge" id="core-status">Core: Unknown</span>
+            <span class="badge" id="logger-status">Logger: Active</span>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <!-- CPU Module -->
+        <section class="card module-cpu">
+            <h2>CPU Operations</h2>
+            <div class="registers">
+                <div class="reg"><label>R0:</label><input type="number" id="r0" value="0"></div>
+                <div class="reg"><label>R1:</label><input type="number" id="r1" value="0"></div>
+                <div class="reg"><label>R2:</label><span id="r2-val" class="val">0</span></div>
+                <div class="reg"><label>R3:</label><span id="r3-val" class="val">0</span></div>
+            </div>
+            <div class="controls">
+                <button onclick="updateRegisters()">Set R0/R1</button>
+                <button class="primary" onclick="execCPU('ADD', 2, 0, 1)">ADD R2 = R0+R1</button>
+                <button class="primary" onclick="execCPU('SUB', 3, 0, 1)">SUB R3 = R0-R1</button>
+                <button class="primary" onclick="execCPU('MUL', 2, 0, 1)">MUL R2 = R0*R1</button>
+                <button class="primary" onclick="execCPU('DIV', 3, 0, 1)">DIV R3 = R0/R1</button>
+            </div>
+            <div id="cpu-feedback" class="feedback"></div>
+        </section>
+
+        <!-- Memory Module -->
+        <section class="card module-mem">
+            <h2>Memory Access</h2>
+            <div class="controls mem-controls">
+                <input type="number" id="mem-addr" placeholder="Addr (0-4088, mult of 8)">
+                <input type="number" id="mem-val" placeholder="Value">
+                <button class="primary" onclick="execMem('WRITE')">Write</button>
+                <button class="secondary" onclick="execMem('READ')">Read</button>
+            </div>
+            <div id="mem-feedback" class="feedback"></div>
+        </section>
+
+        <!-- Data Structures -->
+        <section class="card module-ds">
+            <h2>Data Structures</h2>
+            <div class="ds-row">
+                <div class="ds-col">
+                    <h3>Stack <span class="badge ds-badge" id="stack-count">Depth: 0</span></h3>
+                    <input type="number" id="stack-val" placeholder="Value">
+                    <button class="primary" onclick="execDS('STACK_PUSH')">Push</button>
+                    <button class="secondary" onclick="execDS('STACK_POP')">Pop</button>
+                </div>
+                <div class="ds-col">
+                    <h3>Queue <span class="badge ds-badge" id="queue-count">Count: 0</span></h3>
+                    <input type="number" id="queue-val" placeholder="Value">
+                    <button class="primary" onclick="execDS('QUEUE_ENQ')">Enqueue</button>
+                    <button class="secondary" onclick="execDS('QUEUE_DEQ')">Dequeue</button>
+                </div>
+            </div>
+            <div id="ds-feedback" class="feedback"></div>
+        </section>
+
+        <!-- IPC Addition -->
+        <section class="card module-ipc">
+            <h2>IPC Fork/Pipe Addition</h2>
+            <div class="controls">
+                <input type="number" id="ipc-num1" placeholder="Num 1 (Process 1)">
+                <input type="number" id="ipc-num2" placeholder="Num 2 (Process 2)">
+                <button class="primary" onclick="execIPC()">Run IPC Addition</button>
+            </div>
+            <div class="ipc-status" id="ipc-status">Awaiting execution...</div>
+            <div id="ipc-feedback" class="feedback"></div>
+        </section>
+
+        <!-- Logger Feed -->
+        <section class="card module-logger">
+            <h2>System Log (sim.log)</h2>
+            <div class="log-container" id="log-feed">
+                <!-- Logs will be populated here -->
+            </div>
+        </section>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>

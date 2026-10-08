@@ -76,204 +76,19 @@ static int read_all(int fd, void *buf, size_t size)
 }
 
 /* =========================================================================
- * CPU demo
+ * Command Loop (UI Bridge)
  * ========================================================================= */
-static void run_cpu_demo(cpu_t *cpu)
-{
-    core_log(LVL_INFO, "CPU demo: starting with R0=10 R1=3");
-
-    cpu->reg[0] = 10;
-    cpu->reg[1] = 3;
-
-    /* ADD R2 = R0 + R1 */
-    int rc = cpu_execute(cpu, CPU_OP_ADD, 2, 0, 1);
-    if (rc == 0)
-        core_log(LVL_INFO, "CPU ADD R2=R0+R1 -> R2=%lld",
-                 (long long)cpu->reg[2]);
-    else
-        core_log(LVL_ERROR, "CPU ADD failed (rc=%d)", rc);
-
-    /* SUB R3 = R0 - R1 */
-    rc = cpu_execute(cpu, CPU_OP_SUB, 3, 0, 1);
-    if (rc == 0)
-        core_log(LVL_INFO, "CPU SUB R3=R0-R1 -> R3=%lld",
-                 (long long)cpu->reg[3]);
-    else
-        core_log(LVL_ERROR, "CPU SUB failed (rc=%d)", rc);
-
-    /* MUL R2 = R0 * R1 */
-    rc = cpu_execute(cpu, CPU_OP_MUL, 2, 0, 1);
-    if (rc == 0)
-        core_log(LVL_INFO, "CPU MUL R2=R0*R1 -> R2=%lld",
-                 (long long)cpu->reg[2]);
-    else
-        core_log(LVL_ERROR, "CPU MUL failed (rc=%d)", rc);
-
-    /* DIV R3 = R0 / R1 */
-    rc = cpu_execute(cpu, CPU_OP_DIV, 3, 0, 1);
-    if (rc == 0)
-        core_log(LVL_INFO, "CPU DIV R3=R0/R1 -> R3=%lld",
-                 (long long)cpu->reg[3]);
-    else
-        core_log(LVL_ERROR, "CPU DIV failed (rc=%d)", rc);
-
-    /* DIV by zero: R1=0, attempt R0/R1 */
-    cpu->reg[1] = 0;
-    rc = cpu_execute(cpu, CPU_OP_DIV, 2, 0, 1);
-    if (rc == -2)
-        core_log(LVL_WARN, "CPU DIV by zero rejected (R1=0)");
-    else if (rc != 0)
-        core_log(LVL_ERROR, "CPU DIV unexpected error rc=%d", rc);
-
-    /* Invalid register */
-    rc = cpu_execute(cpu, CPU_OP_ADD, 99, 0, 1);
-    if (rc == -1)
-        core_log(LVL_WARN, "CPU invalid register index rejected (dst=99)");
-    else
-        core_log(LVL_ERROR, "CPU bad-register check failed (rc=%d)", rc);
-
-    core_log(LVL_INFO, "CPU demo: complete");
-}
-
-/* =========================================================================
- * Memory demo
- * ========================================================================= */
-static void run_memory_demo(memory_t *mem)
-{
-    core_log(LVL_INFO, "Memory demo: starting");
-
-    /* Valid write */
-    size_t addr = 0;
-    int64_t val = 0xDEAD;
-    int rc = memory_write(mem, addr, val);
-    if (rc == 0)
-        core_log(LVL_INFO, "MEM WRITE addr=0x%04zx val=%lld OK",
-                 addr, (long long)val);
-    else
-        core_log(LVL_ERROR, "MEM WRITE addr=0x%04zx FAILED", addr);
-
-    /* Valid read-back */
-    int64_t got = 0;
-    rc = memory_read(mem, addr, &got);
-    if (rc == 0)
-        core_log(LVL_INFO, "MEM READ  addr=0x%04zx val=%lld OK",
-                 addr, (long long)got);
-    else
-        core_log(LVL_ERROR, "MEM READ  addr=0x%04zx FAILED", addr);
-
-    /* Out-of-bounds write */
-    addr = MEM_SIZE_BYTES;   /* one byte past the end */
-    rc = memory_write(mem, addr, 42);
-    if (rc == -1)
-        core_log(LVL_WARN, "MEM WRITE out-of-bounds addr=0x%04zx rejected", addr);
-    else
-        core_log(LVL_ERROR, "MEM WRITE bounds check failed for addr=0x%04zx", addr);
-
-    /* Misaligned write */
-    addr = 3;
-    rc = memory_write(mem, addr, 7);
-    if (rc == -1)
-        core_log(LVL_WARN, "MEM WRITE misaligned addr=0x%04zx rejected", addr);
-    else
-        core_log(LVL_ERROR, "MEM WRITE alignment check failed for addr=0x%04zx", addr);
-
-    core_log(LVL_INFO, "Memory demo: complete");
-}
-
-/* =========================================================================
- * Stack demo
- * ========================================================================= */
-static void run_stack_demo(sim_stack_t *st)
-{
-    core_log(LVL_INFO, "Stack demo: starting (capacity=%d)", STACK_CAPACITY);
-
-    /* Push three values */
-    int64_t vals[] = { 100, 200, 300 };
-    for (int i = 0; i < 3; i++) {
-        int rc = stack_push(st, vals[i]);
-        if (rc == 0)
-            core_log(LVL_INFO, "STACK PUSH %lld OK (depth=%zu)",
-                     (long long)vals[i], stack_depth(st));
-        else
-            core_log(LVL_ERROR, "STACK PUSH %lld FAILED (overflow)",
-                     (long long)vals[i]);
-    }
-
-    /* Pop all three */
-    for (int i = 0; i < 3; i++) {
-        int64_t out = 0;
-        int rc = stack_pop(st, &out);
-        if (rc == 0)
-            core_log(LVL_INFO, "STACK POP  -> %lld OK (depth=%zu)",
-                     (long long)out, stack_depth(st));
-        else
-            core_log(LVL_ERROR, "STACK POP  FAILED (underflow)");
-    }
-
-    /* Underflow */
-    int64_t dummy = 0;
-    int rc = stack_pop(st, &dummy);
-    if (rc == -1)
-        core_log(LVL_WARN, "STACK POP  underflow rejected (stack empty)");
-    else
-        core_log(LVL_ERROR, "STACK underflow check failed");
-
-    core_log(LVL_INFO, "Stack demo: complete");
-}
-
-/* =========================================================================
- * Queue demo
- * ========================================================================= */
-static void run_queue_demo(queue_t *qu)
-{
-    core_log(LVL_INFO, "Queue demo: starting (capacity=%d)", QUEUE_CAPACITY);
-
-    /* Enqueue three values */
-    int64_t vals[] = { 11, 22, 33 };
-    for (int i = 0; i < 3; i++) {
-        int rc = queue_enqueue(qu, vals[i]);
-        if (rc == 0)
-            core_log(LVL_INFO, "QUEUE ENQ  %lld OK (count=%zu)",
-                     (long long)vals[i], queue_count(qu));
-        else
-            core_log(LVL_ERROR, "QUEUE ENQ  %lld FAILED (full)",
-                     (long long)vals[i]);
-    }
-
-    /* Dequeue all three */
-    for (int i = 0; i < 3; i++) {
-        int64_t out = 0;
-        int rc = queue_dequeue(qu, &out);
-        if (rc == 0)
-            core_log(LVL_INFO, "QUEUE DEQ  -> %lld OK (count=%zu)",
-                     (long long)out, queue_count(qu));
-        else
-            core_log(LVL_ERROR, "QUEUE DEQ  FAILED (empty)");
-    }
-
-    /* Underflow */
-    int64_t dummy = 0;
-    int rc = queue_dequeue(qu, &dummy);
-    if (rc == -1)
-        core_log(LVL_WARN, "QUEUE DEQ  underflow rejected (queue empty)");
-    else
-        core_log(LVL_ERROR, "QUEUE underflow check failed");
-
-    core_log(LVL_INFO, "Queue demo: complete");
-}
+static cpu_t    g_cpu;
+static memory_t g_mem;
+static sim_stack_t  g_st;
+static queue_t  g_qu;
 
 /* =========================================================================
  * Fork + POSIX-pipe IPC addition demo
- *
- * Parent (Process 1) supplies number1.
- * Child  (Process 2) supplies number2 and sends it to the parent via a pipe.
- * Parent computes and logs the sum.
  * ========================================================================= */
 static void run_ipc_addition(long long number1, long long number2)
 {
-    core_log(LVL_INFO,
-             "IPC addition: start (num1=%lld num2=%lld)",
-             number1, number2);
+    core_log(LVL_INFO, "IPC addition: start (num1=%lld num2=%lld)", number1, number2);
 
     int channel[2];
     if (pipe(channel) < 0) {
@@ -284,60 +99,36 @@ static void run_ipc_addition(long long number1, long long number2)
     pid_t child = fork();
     if (child < 0) {
         core_log(LVL_ERROR, "IPC addition: fork() failed (%s)", strerror(errno));
-        close(channel[0]);
-        close(channel[1]);
+        close(channel[0]); close(channel[1]);
         return;
     }
 
     if (child == 0) {
-        /* ---- Child process (Process 2) ---- */
-        close(channel[0]);   /* close unused read end */
-
-        core_log(LVL_INFO,
-                 "IPC addition: child PID=%ld sending num2=%lld via pipe",
-                 (long)getpid(), number2);
-
+        /* Child */
+        close(channel[0]);
+        core_log(LVL_INFO, "IPC addition: child PID=%ld sending num2=%lld via pipe", (long)getpid(), number2);
         if (write_all(channel[1], &number2, sizeof number2) < 0) {
-            core_log(LVL_ERROR,
-                     "IPC addition: child pipe write failed (%s)",
-                     strerror(errno));
-            close(channel[1]);
-            _exit(EXIT_FAILURE);
+            core_log(LVL_ERROR, "IPC addition: child pipe write failed (%s)", strerror(errno));
+            close(channel[1]); _exit(EXIT_FAILURE);
         }
-
-        core_log(LVL_INFO,
-                 "IPC addition: child PID=%ld pipe send OK, exiting",
-                 (long)getpid());
-        close(channel[1]);
-        _exit(EXIT_SUCCESS);
+        core_log(LVL_INFO, "IPC addition: child PID=%ld pipe send OK, exiting", (long)getpid());
+        close(channel[1]); _exit(EXIT_SUCCESS);
     }
 
-    /* ---- Parent process (Process 1) ---- */
-    close(channel[1]);   /* close unused write end */
-
-    core_log(LVL_INFO,
-             "IPC addition: parent PID=%ld waiting to receive num2 from child PID=%ld",
-             (long)getpid(), (long)child);
+    /* Parent */
+    close(channel[1]);
+    core_log(LVL_INFO, "IPC addition: parent PID=%ld waiting for child PID=%ld", (long)getpid(), (long)child);
 
     long long received = 0;
     if (read_all(channel[0], &received, sizeof received) < 0) {
-        core_log(LVL_ERROR,
-                 "IPC addition: parent pipe read failed (%s)", strerror(errno));
-        close(channel[0]);
-        waitpid(child, NULL, 0);
-        return;
+        core_log(LVL_ERROR, "IPC addition: parent pipe read failed (%s)", strerror(errno));
+        close(channel[0]); waitpid(child, NULL, 0); return;
     }
     close(channel[0]);
 
-    core_log(LVL_INFO,
-             "IPC addition: parent received num2=%lld from pipe", received);
-
     long long sum = number1 + received;
-    core_log(LVL_INFO,
-             "IPC addition: sum = %lld + %lld = %lld",
-             number1, received, sum);
+    core_log(LVL_INFO, "IPC addition: sum = %lld + %lld = %lld", number1, received, sum);
 
-    /* Reap child. */
     int status = 0;
     if (waitpid(child, &status, 0) < 0) {
         core_log(LVL_ERROR, "IPC addition: waitpid failed (%s)", strerror(errno));
@@ -346,10 +137,147 @@ static void run_ipc_addition(long long number1, long long number2)
     if (WIFEXITED(status) && WEXITSTATUS(status) == EXIT_SUCCESS)
         core_log(LVL_INFO, "IPC addition: child exited cleanly");
     else
-        core_log(LVL_WARN, "IPC addition: child did not exit cleanly (status=0x%x)",
-                 status);
+        core_log(LVL_WARN, "IPC addition: child did not exit cleanly (status=0x%x)", status);
 
     core_log(LVL_INFO, "IPC addition: complete");
+}
+
+static void process_command(const char *cmd_line)
+{
+    char cmd[32];
+    if (sscanf(cmd_line, "%31s", cmd) != 1) return;
+
+    if (strcmp(cmd, "PING") == 0) {
+        printf("OK PONG\n");
+    }
+    else if (strcmp(cmd, "GET_STATE") == 0) {
+        printf("OK R0=%lld R1=%lld R2=%lld R3=%lld STACK_DEPTH=%zu QUEUE_COUNT=%zu\n",
+               (long long)g_cpu.reg[0], (long long)g_cpu.reg[1],
+               (long long)g_cpu.reg[2], (long long)g_cpu.reg[3],
+               stack_depth(&g_st), queue_count(&g_qu));
+    }
+    else if (strcmp(cmd, "SET_REG") == 0) {
+        int reg;
+        long long val;
+        if (sscanf(cmd_line, "%*s %d %lld", &reg, &val) == 2 && reg >= 0 && reg < 4) {
+            g_cpu.reg[reg] = val;
+            core_log(LVL_INFO, "UI SET_REG R%d = %lld", reg, val);
+            printf("OK R%d=%lld\n", reg, val);
+        } else {
+            printf("ERROR Invalid SET_REG args\n");
+        }
+    }
+    else if (strcmp(cmd, "CPU") == 0) {
+        char op_str[16];
+        int dst, srcA, srcB;
+        if (sscanf(cmd_line, "%*s %15s %d %d %d", op_str, &dst, &srcA, &srcB) == 4) {
+            cpu_op_t op;
+            if (strcmp(op_str, "ADD") == 0) op = CPU_OP_ADD;
+            else if (strcmp(op_str, "SUB") == 0) op = CPU_OP_SUB;
+            else if (strcmp(op_str, "MUL") == 0) op = CPU_OP_MUL;
+            else if (strcmp(op_str, "DIV") == 0) op = CPU_OP_DIV;
+            else { printf("ERROR Unknown CPU OP\n"); return; }
+            
+            int rc = cpu_execute(&g_cpu, op, dst, srcA, srcB);
+            if (rc == 0) {
+                core_log(LVL_INFO, "CPU %s R%d=R%d,R%d -> R%d=%lld",
+                         op_str, dst, srcA, srcB, dst, (long long)g_cpu.reg[dst]);
+                printf("OK R%d=%lld\n", dst, (long long)g_cpu.reg[dst]);
+            } else if (rc == -2) {
+                core_log(LVL_WARN, "CPU %s by zero rejected", op_str);
+                printf("ERROR Division by zero\n");
+            } else {
+                core_log(LVL_WARN, "CPU %s invalid register", op_str);
+                printf("ERROR Invalid register\n");
+            }
+        } else {
+            printf("ERROR Invalid CPU args\n");
+        }
+    }
+    else if (strcmp(cmd, "MEM_READ") == 0) {
+        size_t addr;
+        if (sscanf(cmd_line, "%*s %zu", &addr) == 1) {
+            int64_t val;
+            int rc = memory_read(&g_mem, addr, &val);
+            if (rc == 0) {
+                core_log(LVL_INFO, "MEM READ addr=0x%04zx val=%lld", addr, (long long)val);
+                printf("OK %lld\n", (long long)val);
+            } else {
+                core_log(LVL_WARN, "MEM READ addr=0x%04zx failed", addr);
+                printf("ERROR Bounds or alignment\n");
+            }
+        }
+    }
+    else if (strcmp(cmd, "MEM_WRITE") == 0) {
+        size_t addr;
+        long long val;
+        if (sscanf(cmd_line, "%*s %zu %lld", &addr, &val) == 2) {
+            int rc = memory_write(&g_mem, addr, val);
+            if (rc == 0) {
+                core_log(LVL_INFO, "MEM WRITE addr=0x%04zx val=%lld", addr, val);
+                printf("OK\n");
+            } else {
+                core_log(LVL_WARN, "MEM WRITE addr=0x%04zx failed", addr);
+                printf("ERROR Bounds or alignment\n");
+            }
+        }
+    }
+    else if (strcmp(cmd, "STACK_PUSH") == 0) {
+        long long val;
+        if (sscanf(cmd_line, "%*s %lld", &val) == 1) {
+            if (stack_push(&g_st, val) == 0) {
+                core_log(LVL_INFO, "STACK PUSH %lld", val);
+                printf("OK\n");
+            } else {
+                core_log(LVL_WARN, "STACK PUSH overflow");
+                printf("ERROR Stack overflow\n");
+            }
+        }
+    }
+    else if (strcmp(cmd, "STACK_POP") == 0) {
+        int64_t val;
+        if (stack_pop(&g_st, &val) == 0) {
+            core_log(LVL_INFO, "STACK POP -> %lld", (long long)val);
+            printf("OK %lld\n", (long long)val);
+        } else {
+            core_log(LVL_WARN, "STACK POP underflow");
+            printf("ERROR Stack underflow\n");
+        }
+    }
+    else if (strcmp(cmd, "QUEUE_ENQ") == 0) {
+        long long val;
+        if (sscanf(cmd_line, "%*s %lld", &val) == 1) {
+            if (queue_enqueue(&g_qu, val) == 0) {
+                core_log(LVL_INFO, "QUEUE ENQ %lld", val);
+                printf("OK\n");
+            } else {
+                core_log(LVL_WARN, "QUEUE ENQ overflow");
+                printf("ERROR Queue full\n");
+            }
+        }
+    }
+    else if (strcmp(cmd, "QUEUE_DEQ") == 0) {
+        int64_t val;
+        if (queue_dequeue(&g_qu, &val) == 0) {
+            core_log(LVL_INFO, "QUEUE DEQ -> %lld", (long long)val);
+            printf("OK %lld\n", (long long)val);
+        } else {
+            core_log(LVL_WARN, "QUEUE DEQ underflow");
+            printf("ERROR Queue empty\n");
+        }
+    }
+    else if (strcmp(cmd, "IPC_ADD") == 0) {
+        long long num1, num2;
+        if (sscanf(cmd_line, "%*s %lld %lld", &num1, &num2) == 2) {
+            run_ipc_addition(num1, num2);
+            /* run_ipc_addition logs it, we just tell UI it finished */
+            printf("OK IPC Finished\n");
+        }
+    }
+    else {
+        printf("ERROR Unknown command\n");
+    }
+    fflush(stdout);
 }
 
 /* =========================================================================
@@ -357,30 +285,21 @@ static void run_ipc_addition(long long number1, long long number2)
  * ========================================================================= */
 int main(void)
 {
-    /* ---- Logger connection ---- */
-    core_log_init();   /* graceful no-op if Logger is not running */
+    core_log_init();   /* connect to Logger; no-op if absent */
     core_log(LVL_INFO, "Core startup");
 
-    /* ---- Subsystem initialisation ---- */
-    cpu_t    cpu;
-    memory_t mem;
-    sim_stack_t  st;
-    queue_t  qu;
+    cpu_init(&g_cpu);
+    memory_init(&g_mem);
+    stack_init(&g_st);
+    queue_init(&g_qu);
+    core_log(LVL_INFO, "Core subsystems initialised");
 
-    cpu_init(&cpu);
-    memory_init(&mem);
-    stack_init(&st);
-    queue_init(&qu);
-    core_log(LVL_INFO, "Core subsystems initialised (CPU, memory, stack, queue)");
+    /* Default to interactive loop via stdin */
+    char line[256];
+    while (fgets(line, sizeof(line), stdin)) {
+        process_command(line);
+    }
 
-    /* ---- Run demos ---- */
-    run_cpu_demo(&cpu);
-    run_memory_demo(&mem);
-    run_stack_demo(&st);
-    run_queue_demo(&qu);
-    run_ipc_addition(7, 5);
-
-    /* ---- Shutdown ---- */
     core_log(LVL_INFO, "Core shutdown");
     core_log_close();
 
