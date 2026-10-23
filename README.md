@@ -66,7 +66,54 @@ You can enter the processes once and switch between algorithms without re-enteri
   many long processes) may truncate the *chart* only - the metrics stay correct.
 
 ## Sample session
-_To be filled in after all modules are merged (see `tests/`)._
+Below is a sample run demonstrating process execution and algorithm comparison across all scheduling algorithms:
+
+```
+========== CPU SCHEDULING SIMULATOR ==========
+Processes loaded: 3
+1. Enter processes:
+   - P1: Arrival = 0, Burst = 4, Priority = 2
+   - P2: Arrival = 1, Burst = 3, Priority = 1
+   - P3: Arrival = 2, Burst = 1, Priority = 3
+
+Gantt Chart (FCFS):
+ +-------+-------+-------+
+ | P1    | P2    | P3    |
+ +-------+-------+-------+
+0       4       7       8
+
+Process Table (FCFS):
+PID    Arrival  Burst    Priority CT     WT     TAT    RT    
+------ -------- -------- -------- ------ ------ ------ ------
+P1     0        4        2        4      0      4      0     
+P2     1        3        1        7      3      6      3     
+P3     2        1        3        8      5      6      5     
+
+Summary Metrics:
+  Average Waiting Time (WT)    : 2.67
+  Average Turnaround Time (TAT): 5.33
+  Average Response Time (RT)   : 2.67
+  CPU Utilization              : 100.00%
+
+=========== Algorithm Comparison (RR quantum = 2) ===========
+
+Algorithm                  Avg WT       Avg TAT      Avg RT       CPU Util (%)  
+-------------------------- ------------ ------------ ------------ --------------
+FCFS                       2.67         5.33         2.67         100.00%
+SJF (Non-preemptive)       2.00         4.67         2.00         100.00%
+SJF (Preemptive/SRTF)      1.67         4.33         1.33         100.00%
+Priority (Non-preemptive)  2.67         5.33         2.67         100.00%
+Priority (Preemptive)      2.67         5.33         1.67         100.00%
+Round Robin                3.00         5.67         1.00         100.00%
+```
+
+## Running Tests
+Run the test suite:
+```bash
+gcc -Wall -Wextra -std=c11 -I. -o tests/test_all tests/test_all.c common.c fcfs.c sjf.c priority.c rr.c metrics.c gantt.c
+./tests/test_all
+```
 
 ## Team
 Team Lead, Student 1, Student 2, Student 3 - see ownership table above.
+
