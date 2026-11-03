@@ -8,7 +8,7 @@ Welcome to the **CodeX** Project-Based Learning (PBL) repository for Operating S
 
 | Member | Focus Topic & Module | Primary Document |
 |---|---|---|
-| **Disha** | IPC Architecture, Foundations & Master Report | [IPC.md](IPC.md), [Inter1.md](Inter1.md) |
+| **Disha** | IPC Architecture, Foundations & Master Report | [IPC.md](IPC.md), [IPC_Intro.md](IPC_Intro.md) |
 | **Dhanush** | Pipes & Message Queues | [Pipes_and_Message_Queues.md](Pipes_and_Message_Queues.md) |
 | **Sohan** | Shared Memory & Semaphores | [Shared_Memory_and_Semaphores.md](Shared_Memory_and_Semaphores.md) |
 | **Bathin** | Sockets & Signals | [Sockets_and_Signals.md](Sockets_and_Signals.md) |
@@ -26,7 +26,7 @@ Each topic is cleanly modularized into dedicated Markdown guides, with [IPC.md](
 | 🚰 **[Pipes_and_Message_Queues.md](Pipes_and_Message_Queues.md)** | Pipes & Message Queues | Anonymous pipes, named FIFOs, POSIX/System V message queues, diagrams, and trade-offs. |
 | 🧠 **[Shared_Memory_and_Semaphores.md](Shared_Memory_and_Semaphores.md)** | Shared Memory & Semaphores | High-speed memory sharing, critical sections, binary and counting semaphores, and race conditions. |
 | 🌐 **[Sockets_and_Signals.md](Sockets_and_Signals.md)** | Sockets & Signals | Stream (TCP), Datagram (UDP), and Unix domain sockets, kernel signals, handlers, and process lifecycle. |
-| 📝 **[Inter1.md](Inter1.md)** | IPC Introduction & Overview | Foundational concepts: definition of IPC, process isolation, and classification into shared memory vs message passing. |
+| 📝 **[IPC_Intro.md](IPC_Intro.md)** | IPC Introduction & Overview | Foundational concepts: definition of IPC, process isolation, and classification into shared memory vs message passing. |
 
 ---
 
@@ -36,7 +36,7 @@ Each topic is cleanly modularized into dedicated Markdown guides, with [IPC.md](
 CodeX-PBL-/
 ├── README.md                          # Main repository landing page & index
 ├── IPC.md                             # Comprehensive project master report (with figures)
-├── Inter1.md                          # Foundational IPC concepts & introduction
+├── IPC_Intro.md                       # Foundational IPC concepts & introduction
 ├── Pipes_and_Message_Queues.md        # Deep dive: Pipes and Message Queues
 ├── Shared_Memory_and_Semaphores.md    # Deep dive: Shared Memory & Semaphores
 ├── Sockets_and_Signals.md             # Deep dive: Sockets & Signals
