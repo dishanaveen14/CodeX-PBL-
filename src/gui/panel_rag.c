@@ -78,7 +78,8 @@ static void draw_rag(HDC hdc, RECT *rect) {
                                   DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Segoe UI");
     HFONT old_font = (HFONT)SelectObject(hdc, title_font);
     SetTextColor(hdc, RGB(30, 41, 59));
-    TextOut(hdc, 25, 20, "Resource Allocation Graph (RAG) — Directed Bipartite System View", 63);
+    const char *title_str = "Resource Allocation Graph (RAG) - Directed Bipartite System View";
+    TextOut(hdc, 25, 20, title_str, (int)strlen(title_str));
 
     HFONT label_font = CreateFont(14, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
                                   ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
@@ -90,7 +91,7 @@ static void draw_rag(HDC hdc, RECT *rect) {
         RECT msg_rect = canvas;
         SetTextColor(hdc, RGB(148, 163, 184));
         DrawText(hdc, "No processes or resources loaded.\nLoad a configuration preset in 'Setup & Matrices (P1)' tab.",
-                 -1, &msg_rect, DT_CENTER | DT_VCENTER | DT_WORDBREAK);
+                 -1, &msg_rect, DT_CENTER | DT_VCENTER | DT_WORDBREAK | DT_NOPREFIX);
         SelectObject(hdc, old_font);
         DeleteObject(title_font);
         DeleteObject(label_font);

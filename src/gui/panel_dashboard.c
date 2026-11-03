@@ -158,7 +158,7 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
     /* Title Label */
     CreateWindow(
         "STATIC",
-        "System Overview && Integration Dashboard (Person 4 Coordinator)",
+        "System Overview & Integration Dashboard (Person 4 Coordinator)",
         WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
         20, 15, 700, 22,
         panel, NULL, hInstance, NULL
@@ -167,8 +167,8 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
     /* Description */
     CreateWindow(
         "STATIC",
-        "Central coordinator orchestrating Person 1 (State && Matrices), Person 2 (Banker's Algorithm), "
-        "and Person 3 (Deadlock Detection && RAG).",
+        "Central coordinator orchestrating Person 1 (State & Matrices), Person 2 (Banker's Algorithm), "
+        "and Person 3 (Deadlock Detection & RAG).",
         WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
         20, 38, 960, 20,
         panel, NULL, hInstance, NULL
@@ -207,7 +207,7 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
         panel, (HMENU)(INT_PTR)IDC_BTN_DASH_RESET, hInstance, NULL
     );
 
-    /* Group Box 1: Overall System Health */
+    /* Group Box 1: Overall System Health (Width: 480, Height: 175) */
     CreateWindow(
         "BUTTON",
         "Overall System State Status",
@@ -224,7 +224,7 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
         panel, (HMENU)(INT_PTR)IDC_STATIC_DASH_STATUS, hInstance, NULL
     );
 
-    /* Group Box 2: Subsystem Integration Summary */
+    /* Group Box 2: Subsystem Integration Summary (Width: 480, Height: 175) */
     CreateWindow(
         "BUTTON",
         "Subsystem Roles && Module Status",
@@ -235,16 +235,16 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
 
     g_hwnd_subsystems_static = CreateWindow(
         "STATIC",
-        "Person 1: Process && Resource Mgmt, Allocation && Need Matrices [ONLINE]\n\n"
-        "Person 2: Banker's Algorithm, Safety Analysis, Safe Sequences [ONLINE]\n\n"
-        "Person 3: Deadlock Detection, Request Tracker, RAG Visualizer, Recovery [ONLINE]\n\n"
-        "Person 4: Coordinator, Multi-module Workflow, Integrated Validation [ONLINE]",
+        "- Person 1 [ONLINE]: Process & Resource Management, Matrices\n\n"
+        "- Person 2 [ONLINE]: Banker's Algorithm & Safe State Analysis\n\n"
+        "- Person 3 [ONLINE]: Deadlock Detection, Recovery & RAG Graph\n\n"
+        "- Person 4 [ONLINE]: System Architecture & Coordinator Integration",
         WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
         535, 128, 450, 142,
         panel, (HMENU)(INT_PTR)IDC_STATIC_DASH_SUBSYSTEMS, hInstance, NULL
     );
 
-    /* Group Box 3: Live Model Dimensions & Metrics */
+    /* Group Box 3: Live Model Dimensions & Metrics (Width: 980, Height: 185) */
     CreateWindow(
         "BUTTON",
         "Integrated System Metrics (Live State + Algorithm Findings)",
@@ -295,11 +295,11 @@ void panel_dashboard_refresh(HWND panel, const SystemContext *ctx) {
 
         snprintf(status_buf, sizeof(status_buf),
             "System Classification: %s\n\n"
-            "Status Detail:\n%s\n\n"
+            "Status Detail: %s\n\n"
             "Safe Sequence: %s\n"
             "Deadlocked Processes: %d",
             badge,
-            st->status_message[0] ? st->status_message : "No state changes evaluated yet.",
+            st->status_message[0] ? st->status_message : "System initialized to empty state.",
             ctx->latest_safety_result.is_safe ? "Computed (Safe Execution Path Available)" : "None Available",
             ctx->latest_deadlock_result.deadlocked_count);
         SetWindowText(g_hwnd_status_static, status_buf);
@@ -337,7 +337,7 @@ void panel_dashboard_refresh(HWND panel, const SystemContext *ctx) {
             "  Total Resources:     %s\n"
             "  Available Resources: %s\n\n"
             "[Person 2: Banker's Algorithm] Safety Check: %s | Evaluation Steps: %d\n\n"
-            "[Person 3: Deadlock && RAG] Deadlock Detected: %s | Waiting Processes: %d | RAG Nodes: %d | RAG Edges: %d\n\n"
+            "[Person 3: Deadlock & RAG] Deadlock Detected: %s | Waiting Processes: %d | RAG Nodes: %d | RAG Edges: %d\n\n"
             "[Person 4: Integration] All modules connected via central Coordinator workflow.",
             st->process_count, MAX_PROCESSES,
             st->resource_count, MAX_RESOURCES,
