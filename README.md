@@ -2,7 +2,7 @@
 
 An interactive graphical simulation system demonstrating operating system process scheduling, resource allocation, deadlock avoidance using **Banker's Algorithm**, multi-instance **Deadlock Detection**, **Resource Allocation Graph (RAG)** visualization, and **Victim Recovery**.
 
-Developed in pure **C** for Windows desktop environments.
+Developed in pure **C** (C11) for Windows desktop environments using native Win32 API.
 
 ---
 
@@ -46,10 +46,10 @@ CodeX-PBL-/
 │   ├── gui/                            # GUI Shell and tab panels
 │   │   ├── gui_app.h                   # Main window, event loop, navigation tabs
 │   │   ├── panel_dashboard.h           # System status & metrics dashboard
-│   │   ├── panel_setup.h               # Setup panel placeholder (Person 1)
-│   │   ├── panel_bankers.h             # Banker's algorithm panel placeholder (Person 2)
-│   │   ├── panel_detection.h           # Deadlock detection panel placeholder (Person 3)
-│   │   └── panel_rag.h                 # RAG graph visualization panel placeholder
+│   │   ├── panel_setup.h               # Process & matrix setup GUI (Person 1)
+│   │   ├── panel_bankers.h             # Banker's algorithm GUI (Person 2)
+│   │   ├── panel_detection.h           # Deadlock detection & recovery GUI (Person 3)
+│   │   └── panel_rag.h                 # RAG graph visualization canvas (Person 3/4)
 │   └── utils/
 │       └── logger.h                    # Component-based logging utility
 ├── src/                                # C source implementations
@@ -57,29 +57,29 @@ CodeX-PBL-/
 │   ├── common/
 │   │   ├── system_state.c              # State lifecycle & memory operations
 │   │   └── error.c                     # Error string conversion implementations
-│   ├── person1_process_resource/       # Person 1 implementation stubs
-│   │   ├── process_mgmt.c              # Process management stubs (TODO)
-│   │   ├── resource_mgmt.c             # Resource management stubs (TODO)
-│   │   └── matrix_mgmt.c               # Matrix calculation stubs (TODO)
+│   ├── person1_process_resource/       # Person 1 implementations
+│   │   ├── process_mgmt.c              # Process management
+│   │   ├── resource_mgmt.c             # Resource management
+│   │   └── matrix_mgmt.c               # Matrix calculation & presets
 │   ├── person2_bankers/
-│   │   └── bankers.c                   # Banker's Algorithm stubs (TODO)
+│   │   └── bankers.c                   # Banker's Algorithm & trial avoidance
 │   ├── person3_detection_recovery/
-│   │   ├── detection.c                 # Deadlock detection stubs (TODO)
-│   │   ├── rag.c                       # RAG builder stubs (TODO)
-│   │   └── recovery.c                  # Recovery operation stubs (TODO)
+│   │   ├── detection.c                 # Deadlock detection algorithm
+│   │   ├── rag.c                       # RAG graph builder
+│   │   └── recovery.c                  # Victim selection & termination
 │   ├── person4_integration/
-│   │   └── coordinator.c               # Master workflow orchestration stubs
+│   │   └── coordinator.c               # Master workflow orchestration
 │   ├── gui/
 │   │   ├── gui_app.c                   # Window procedure, tab layout, resize handler
-│   │   ├── panel_dashboard.c           # Dashboard UI panel shell
-│   │   ├── panel_setup.c               # Person 1 UI panel shell
-│   │   ├── panel_bankers.c             # Person 2 UI panel shell
-│   │   ├── panel_detection.c           # Person 3 UI panel shell
-│   │   └── panel_rag.c                 # RAG visualization canvas shell
+│   │   ├── panel_dashboard.c           # Dashboard UI panel with full analysis trigger
+│   │   ├── panel_setup.c               # Person 1 UI panel (interactive matrix grid)
+│   │   ├── panel_bankers.c             # Person 2 UI panel (safety & trace display)
+│   │   ├── panel_detection.c           # Person 3 UI panel (detection & recovery)
+│   │   └── panel_rag.c                 # Person 3/4 UI panel (custom double-buffered GDI)
 │   └── utils/
 │       └── logger.c                    # Console/diagnostic logger
 ├── tests/
-│   └── test_skeleton.c                 # Test harness verifying all contracts and stubs
+│   └── test_skeleton.c                 # Test harness verifying all 4 modules (146 assertions)
 ├── build.bat                           # Windows Command Prompt build runner
 ├── build.ps1                           # Windows PowerShell build runner
 ├── Makefile                            # Standard GNU Makefile
@@ -90,12 +90,12 @@ CodeX-PBL-/
 
 ## 3. Team Responsibilities
 
-| Role | Member | Responsibilities | Assigned Files |
-| :--- | :--- | :--- | :--- |
-| **Person 1** | Process & Resource Management | **[IMPLEMENTED]** Process creation/removal, Resource instance setup, Allocation and Maximum Matrix entry, automatic Need Matrix and Available Vector calculations, preliminary request validation, resource allocation/release operations, textbook preset loading, and interactive GUI setup panel. | `include/person1_process_resource/*`, `src/person1_process_resource/*`, `include/gui/panel_setup.h`, `src/gui/panel_setup.c` |
-| **Person 2** | Banker's Algorithm & Safe State Analysis | **[IMPLEMENTED]** Deadlock avoidance via Banker's Safety Algorithm (Work/Finish tracking), Safe Sequence discovery, Trial-state request evaluation and rollback on unsafe states, step-by-step educational trace generation, and interactive Banker's GUI panel. | `include/person2_bankers/*`, `src/person2_bankers/*`, `include/gui/panel_bankers.h`, `src/gui/panel_bankers.c` |
-| **Person 3** | Deadlock Detection, Recovery, & RAG | **[IMPLEMENTED]** Multi-instance Deadlock Detection algorithm (using Outstanding Requests Matrix), Outstanding Request tracking, Resource Allocation Graph data builder and GDI visualizer, victim selection heuristic, recovery via victim termination, and interactive Detection & RAG GUI panels. | `include/person3_detection_recovery/*`, `src/person3_detection_recovery/*`, `include/gui/panel_detection.h`, `src/gui/panel_detection.c`, `include/gui/panel_rag.h`, `src/gui/panel_rag.c` |
-| **Person 4** | Architecture, GUI Coordination, & Integration | Project skeleton, shared contracts, coordinator orchestration, master GUI window, tab navigation, RAG rendering integration, end-to-end testing, and final delivery. | `include/common/*`, `include/person4_integration/*`, `include/gui/gui_app.*`, `src/main.c`, build configurations, `tests/*` |
+| Role | Member | Responsibilities | Assigned Files | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Person 1** | Process & Resource Management | Process creation/removal, Resource instance setup, Allocation and Maximum Matrix entry, automatic Need Matrix and Available Vector calculations, preliminary request validation, resource allocation/release operations, textbook preset loading, and interactive GUI setup panel. | `include/person1_process_resource/*`, `src/person1_process_resource/*`, `include/gui/panel_setup.h`, `src/gui/panel_setup.c` | **COMPLETE** |
+| **Person 2** | Banker's Algorithm & Safe State Analysis | Deadlock avoidance via Banker's Safety Algorithm (Work/Finish tracking), Safe Sequence discovery, Trial-state request evaluation and rollback on unsafe states, step-by-step educational trace generation, and interactive Banker's GUI panel. | `include/person2_bankers/*`, `src/person2_bankers/*`, `include/gui/panel_bankers.h`, `src/gui/panel_bankers.c` | **COMPLETE** |
+| **Person 3** | Deadlock Detection, Recovery, & RAG | Multi-instance Deadlock Detection algorithm (using Outstanding Requests Matrix), Outstanding Request tracking, Resource Allocation Graph data builder and GDI visualizer, victim selection heuristic, recovery via victim termination, and interactive Detection & RAG GUI panels. | `include/person3_detection_recovery/*`, `src/person3_detection_recovery/*`, `include/gui/panel_detection.h`, `src/gui/panel_detection.c`, `include/gui/panel_rag.h`, `src/gui/panel_rag.c` | **COMPLETE** |
+| **Person 4** | Architecture, GUI Coordination, & Integration | Project skeleton, shared contracts, master workflow coordinator (`coordinator.c`), request coordination pipeline, dashboard integration hub, tab navigation, RAG rendering integration, and comprehensive end-to-end verification. | `include/common/*`, `include/person4_integration/*`, `src/person4_integration/*`, `include/gui/gui_app.*`, `include/gui/panel_dashboard.*`, `src/gui/panel_dashboard.c`, `src/main.c`, build configurations, `tests/*` | **COMPLETE** |
 
 ---
 
@@ -156,22 +156,22 @@ bin\deadlock_sim.exe
 When launched, the desktop application displays:
 - A responsive Windows window titled **"Deadlock Simulation System - PBL Architecture Skeleton"**.
 - A native **Tab Navigation Bar** containing:
-  1. **Dashboard:** Live state metrics and system classification (SAFE / UNSAFE / DEADLOCKED).
-  2. **Setup & Matrices (P1):** Planned forms and matrix tables for Person 1.
-  3. **Banker's Algorithm (P2):** Planned safety checks and safe sequence views for Person 2.
-  4. **Deadlock Detection (P3):** Planned detection algorithms, waiting requests, and recovery workflows for Person 3.
-  5. **RAG Visualizer (P3/P4):** Canvas layout for rendering nodes and directed edges.
-- A **Status Bar** indicating the active module and skeleton readiness.
+  1. **Dashboard:** Live state metrics, 1-click preset loaders, Full System Analysis coordinator trigger, and overall system status classification (SAFE / UNSAFE / DEADLOCKED).
+  2. **Setup & Matrices (P1):** Process/Resource manager, interactive cell-by-cell matrix editor, and sample preset loader.
+  3. **Banker's Algorithm (P2):** Safety checks, Safe Sequence visualizer, Work-vector trace breakdown, and trial request evaluator.
+  4. **Deadlock Detection (P3):** Deadlock detector, Outstanding request tracker, and victim termination recovery panel.
+  5. **RAG Visualizer (P3/P4):** Custom GDI-drawn directed bipartite graph with circular processes, rounded rectangular resources, and highlighted deadlock cycles.
+- A **Status Bar** indicating the active module and live status feedback.
 
 ---
 
 ## 6. Verification and Test Suite
 
-To verify that all shared headers, structs, memory rules, and function stubs compile and link correctly:
+To run all integrated test scenarios:
 ```cmd
 build.bat test
 ```
-The test harness runs 12 test suites with 117 assertions:
+The test harness runs 12 test suites with 146 assertions:
 - `[TEST SUITE 1] System State Lifecycle & Memory Contracts`
 - `[TEST SUITE 2] Person 1: Process Creation, Queries & Safe Removal`
 - `[TEST SUITE 3] Person 1: Resource Creation, Instances & Total Updates`
@@ -183,24 +183,4 @@ The test harness runs 12 test suites with 117 assertions:
 - `[TEST SUITE 9] Person 3: Deadlock Detection & Outstanding Requests`
 - `[TEST SUITE 10] Person 3: Resource Allocation Graph (RAG) Construction`
 - `[TEST SUITE 11] Person 3: Deadlock Recovery & Victim Termination`
-- `[TEST SUITE 12] Person 4 Stubs Pending Final Integration`
-
----
-
-## 7. Instructions for Adding Future Implementations
-
-When implementing feature logic:
-
-1. **Do not modify interface signatures** without coordinating with Person 4.
-2. **Locate your assigned file** in `src/<your_module>/`:
-   - Person 1: `src/person1_process_resource/`
-   - Person 2: `src/person2_bankers/`
-   - Person 3: `src/person3_detection_recovery/`
-3. Replace the `/* TODO: Person X */` comment and `return ERR_NOT_IMPLEMENTED;` with your algorithm logic.
-4. **Follow Memory & State Invariants:**
-   - Person 1 updates `allocation`, `maximum`, `need`, and `available` in `SystemState`.
-   - Person 2 runs safety checks on copies of vectors (`Work = Available`) and must **never** modify the live state during an analysis or check.
-   - Person 3 runs detection against `outstanding_requests` and `allocation`, distinct from `need`.
-5. Connect your functional logic to the designated UI panel in `src/gui/panel_<your_module>.c`.
-6. Run `build.bat test` to verify your changes against the shared test suite.
-
+- `[TEST SUITE 12] Person 4: Coordinator Workflows, Multi-Module Integration & Recovery`

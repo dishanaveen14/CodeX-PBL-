@@ -16,12 +16,12 @@ To allow four team members to develop their respective components in parallel wi
 
 ## 2. Team Structure & Module Ownership
 
-| Member | Focus Domain | Key Responsibilities | Primary Interface Directory |
-| :--- | :--- | :--- | :--- |
-| **Person 1** | Process & Resource Management | Process creation/removal, Resource types & instances, Allocation & Maximum matrices, Need & Available calculation, request submission | `include/person1_process_resource/` |
-| **Person 2** | Banker's Algorithm & Safety Analysis | Safety algorithm (Work/Finish vectors), Safe sequence discovery, Request evaluation on trial states, step-by-step trace | `include/person2_bankers/` |
-| **Person 3** | Deadlock Detection, Recovery & RAG | Deadlock detection algorithm, Outstanding request tracking, RAG graph data builder, victim selection & recovery | `include/person3_detection_recovery/` |
-| **Person 4** | Architecture, GUI Coordination & Integration | Shared data contracts, central coordinator, main GUI window, navigation tabs, status dispatch, final test harness | `include/person4_integration/`, `include/gui/` |
+| Member | Focus Domain | Key Responsibilities | Primary Interface Directory | Implementation Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Person 1** | Process & Resource Management | Process creation/removal, Resource types & instances, Allocation & Maximum matrices, Need & Available calculation, request submission | `include/person1_process_resource/` | **COMPLETE** |
+| **Person 2** | Banker's Algorithm & Safety Analysis | Safety algorithm (Work/Finish vectors), Safe sequence discovery, Request evaluation on trial states, step-by-step trace | `include/person2_bankers/` | **COMPLETE** |
+| **Person 3** | Deadlock Detection, Recovery & RAG | Deadlock detection algorithm, Outstanding request tracking, RAG graph data builder, victim selection & recovery | `include/person3_detection_recovery/` | **COMPLETE** |
+| **Person 4** | Architecture, GUI Coordination & Integration | Shared data contracts, central coordinator, main GUI window, navigation tabs, status dispatch, final test harness | `include/person4_integration/`, `include/gui/` | **COMPLETE** |
 
 ---
 
@@ -129,21 +129,37 @@ Header files:
 ### 4.4 Person 4: System Integration Coordinator
 Header file:
 - `include/person4_integration/coordinator.h`:
-  - Holds `SystemContext` encapsulating master state, cached safety result, cached deadlock result, and cached RAG model.
-  - Exposes unified workflows: `coordinator_init`, `coordinator_handle_resource_request`, `coordinator_run_full_analysis`, `coordinator_execute_recovery`, and `coordinator_sync_all_views`.
+  - Container `SystemContext` holds live `SystemState`, cached `BankerSafetyResult`, cached `DeadlockResult`, and cached `RAGGraph`.
+  - `coordinator_init(ctx)`: Resets state, clears RAG, and initializes data structures.
+  - `coordinator_run_full_analysis(ctx)`:
+    1. Recalculates `need` and `available` via Person 1.
+    2. Runs Banker's safety check via Person 2.
+    3. Runs deadlock detection via Person 3.
+    4. Rebuilds the RAG bipartite graph via Person 3.
+    5. Sets `overall_status` (DEADLOCKED, SAFE, or UNSAFE) and informative description.
+  - `coordinator_handle_resource_request(ctx, pid, request_vector)`:
+    1. Preliminary bounds and available checks (Person 1).
+    2. Banker's avoidance trial evaluation (Person 2).
+    3. If approved: commits allocation via `sys_allocation_apply` and clears outstanding request.
+    4. If denied: records as outstanding request via `detection_record_outstanding_request`.
+    5. Re-runs full analysis to synchronize all subsystems.
+  - `coordinator_execute_recovery(ctx, victim_pid, out_recovery)`:
+    Executes victim process termination, reclaims allocations, and triggers automatic re-detection.
+  - `coordinator_sync_all_views(ctx)`:
+    Synchronizes all GUI models and caches with the live system state.
 
 ---
 
 ## 5. GUI Architecture (Native Win32 C Application)
 
-The GUI utilizes the native Windows C controls (`user32`, `gdi32`, `comctl32`).
+The GUI utilizes native Windows C controls (`user32`, `gdi32`, `comctl32`).
 - **Main Window:** Hosted in `src/gui/gui_app.c`. Responsive resizing with `WM_SIZE` and minimum tracking dimensions ($800 \times 600$).
 - **Tab Controller:** Five tabs for modular separation:
-  1. **Dashboard:** System state overview, health status, and live metrics.
+  1. **Dashboard:** System state overview, health status, 1-click presets, full analysis execution, and live metrics.
   2. **Setup & Matrices (P1):** Process/Resource creation, Matrix editors.
   3. **Banker's Algorithm (P2):** Safety check trigger, Safe sequence, Trace.
   4. **Deadlock Detection (P3):** Detection analysis, Waiting requests, Recovery.
-  5. **RAG Visualizer (P3/P4):** Vector drawing canvas with nodes and directional arrows.
+  5. **RAG Visualizer (P3/P4):** Custom double-buffered GDI canvas rendering process nodes, resource blocks, and deadlock cycle edges.
 - **Status Bar:** Bottom bar showing active module status and user feedback.
 
 ---
@@ -154,4 +170,3 @@ The GUI utilizes the native Windows C controls (`user32`, `gdi32`, `comctl32`).
 - **No Uncontrolled Heap Allocations:** Fixed-capacity data buffers (`MAX_PROCESSES`, `MAX_RESOURCES`) avoid heap fragmentation and memory leaks.
 - **Pure C Calling:** No hidden class states or language runtime dependencies.
 - **Defensive State Cloning:** Any speculative operation must clone the state using `system_state_clone()` before applying changes.
-

@@ -421,17 +421,72 @@ static void test_person3_deadlock_recovery(void) {
     TEST_ASSERT(rec_res.post_recovery_detection.deadlock_detected == false, "Post-recovery detection confirms deadlock ELIMINATED!");
 }
 
-static void test_person4_stubs(void) {
-    printf("[TEST SUITE 12] Person 4 Stubs Pending Final Integration\n");
+static void test_person4_coordinator_integration(void) {
+    printf("[TEST SUITE 12] Person 4: Coordinator Workflows, Multi-Module Integration & Recovery\n");
     SystemContext ctx;
+
+    /* 1. Context Initialization */
     ErrorCode err = coordinator_init(&ctx);
-    TEST_ASSERT(err == ERR_SUCCESS, "coordinator_init succeeds and initializes state");
-    TEST_ASSERT(coordinator_run_full_analysis(&ctx) == ERR_NOT_IMPLEMENTED, "Person 4 Coordinator stub intact");
+    TEST_ASSERT(err == ERR_SUCCESS, "coordinator_init succeeds");
+    TEST_ASSERT(ctx.live_state.process_count == 0, "Initial process count is 0");
+    TEST_ASSERT(ctx.latest_rag.node_count == 0, "Initial RAG node count is 0");
+
+    /* 2. Full System Analysis on Safe State (Preset 0) */
+    sys_load_sample_configuration(&ctx.live_state, 0);
+    err = coordinator_run_full_analysis(&ctx);
+    TEST_ASSERT(err == ERR_SUCCESS, "coordinator_run_full_analysis succeeds on Preset 0");
+    TEST_ASSERT(ctx.live_state.overall_status == SYSTEM_STATUS_SAFE, "System status evaluated as SAFE");
+    TEST_ASSERT(ctx.latest_safety_result.is_safe == true, "Banker's result cached as SAFE");
+    TEST_ASSERT(ctx.latest_deadlock_result.deadlock_detected == false, "Deadlock detection cached as NO DEADLOCK");
+    TEST_ASSERT(ctx.latest_rag.node_count == 8, "RAG graph populated with 8 nodes (5 processes + 3 resources)");
+    TEST_ASSERT(ctx.latest_rag.edge_count > 0, "RAG graph has active allocation edges");
+
+    /* 3. Handle Resource Request: Safe Request (P1 requests [1, 0, 2]) */
+    int req_p1[3] = { 1, 0, 2 };
+    err = coordinator_handle_resource_request(&ctx, 1, req_p1);
+    TEST_ASSERT(err == ERR_SUCCESS, "coordinator_handle_resource_request grants safe request for P1");
+    TEST_ASSERT(ctx.live_state.allocation[1][0] == 3, "P1 allocation for A increased from 2 to 3");
+    TEST_ASSERT(ctx.live_state.allocation[1][2] == 2, "P1 allocation for C increased from 0 to 2");
+    TEST_ASSERT(ctx.live_state.available[0] == 2 && ctx.live_state.available[2] == 0, "Available vector decreased accordingly");
+    TEST_ASSERT(ctx.live_state.overall_status == SYSTEM_STATUS_SAFE, "System remains SAFE after granted request");
+
+    /* 4. Handle Resource Request: Unsafe Request (P0 requests [0, 2, 0]) */
+    int req_p0[3] = { 0, 2, 0 };
+    err = coordinator_handle_resource_request(&ctx, 0, req_p0);
+    TEST_ASSERT(err == ERR_SYSTEM_UNSAFE, "coordinator_handle_resource_request denies unsafe request for P0");
+    TEST_ASSERT(ctx.live_state.allocation[0][1] == 1, "P0 live allocation preserved unchanged (not granted)");
+    TEST_ASSERT(ctx.live_state.outstanding_requests[0][1] == 2, "Unsafe request converted to outstanding request for P0");
+
+    /* 5. Full System Analysis on Deadlocked State (Preset 1) */
+    sys_load_sample_configuration(&ctx.live_state, 1);
+    err = coordinator_run_full_analysis(&ctx);
+    TEST_ASSERT(err == ERR_SUCCESS, "coordinator_run_full_analysis succeeds on Preset 1");
+    TEST_ASSERT(ctx.live_state.overall_status == SYSTEM_STATUS_DEADLOCKED, "System status evaluated as DEADLOCKED");
+    TEST_ASSERT(ctx.latest_deadlock_result.deadlock_detected == true, "Deadlock detection cached as DEADLOCKED");
+    TEST_ASSERT(ctx.latest_deadlock_result.deadlocked_count == 3, "All 3 processes detected in circular wait");
+
+    /* 6. Coordinated Recovery Workflow */
+    int victim_id = -1;
+    recovery_select_victim(&ctx.live_state, &ctx.latest_deadlock_result, &victim_id);
+    RecoveryResult rec_res;
+    err = coordinator_execute_recovery(&ctx, victim_id, &rec_res);
+    TEST_ASSERT(err == ERR_SUCCESS, "coordinator_execute_recovery succeeds");
+    TEST_ASSERT(rec_res.success == true, "Recovery execution succeeded");
+    TEST_ASSERT(ctx.latest_deadlock_result.deadlock_detected == false, "Deadlock resolved and auto-synchronized across system context");
+    TEST_ASSERT(ctx.live_state.overall_status != SYSTEM_STATUS_DEADLOCKED, "System status updated away from DEADLOCKED");
+
+    /* 7. Parameter Validation & Boundary Checks */
+    TEST_ASSERT(coordinator_init(NULL) == ERR_INVALID_PARAM, "coordinator_init rejects NULL");
+    TEST_ASSERT(coordinator_run_full_analysis(NULL) == ERR_INVALID_PARAM, "coordinator_run_full_analysis rejects NULL");
+    TEST_ASSERT(coordinator_handle_resource_request(NULL, 0, req_p1) == ERR_INVALID_PARAM, "coordinator_handle_resource_request rejects NULL ctx");
+    TEST_ASSERT(coordinator_handle_resource_request(&ctx, 999, req_p1) == ERR_INVALID_PARAM, "coordinator_handle_resource_request rejects out-of-bounds PID");
+    TEST_ASSERT(coordinator_execute_recovery(NULL, 0, &rec_res) == ERR_INVALID_PARAM, "coordinator_execute_recovery rejects NULL ctx");
+    TEST_ASSERT(coordinator_execute_recovery(&ctx, -1, &rec_res) == ERR_INVALID_PARAM, "coordinator_execute_recovery rejects invalid victim PID");
 }
 
 int main(void) {
     printf("=================================================================\n");
-    printf(" Deadlock Simulation System - Person 1, 2, 3 & Test Suite        \n");
+    printf(" Deadlock Simulation System - Person 1, 2, 3 & 4 Test Suite      \n");
     printf("=================================================================\n\n");
 
     test_system_state_lifecycle();
@@ -456,7 +511,7 @@ int main(void) {
     printf("\n");
     test_person3_deadlock_recovery();
     printf("\n");
-    test_person4_stubs();
+    test_person4_coordinator_integration();
 
     printf("\n=================================================================\n");
     printf(" Test Results: %d / %d Passed\n", g_tests_passed, g_tests_run);
