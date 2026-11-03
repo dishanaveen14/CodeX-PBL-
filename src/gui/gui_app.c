@@ -16,6 +16,7 @@
 #include <stdio.h>
 
 #define MAIN_WINDOW_CLASS "DeadlockSimulationSystemMain"
+#define TAB_BAR_HEIGHT    30
 
 static GuiApp *g_app_instance = NULL;
 
@@ -31,22 +32,23 @@ static void resize_panels(GuiApp *app) {
     int status_height = rc_status.bottom - rc_status.top;
     if (status_height <= 0) status_height = 22;
 
-    int tab_w = rc.right;
-    int tab_h = rc.bottom - status_height;
+    int total_w = rc.right;
+    int client_h = rc.bottom - status_height;
 
-    MoveWindow(app->hwnd_tab, 0, 0, tab_w, tab_h, TRUE);
+    /* Sizing tab control to the top strip (height 30) avoids sibling Z-order collision */
+    MoveWindow(app->hwnd_tab, 0, 0, total_w, TAB_BAR_HEIGHT, TRUE);
 
-    /* Calculate display area inside tab control */
-    RECT rc_display = { 0, 0, tab_w, tab_h };
-    TabCtrl_AdjustRect(app->hwnd_tab, FALSE, &rc_display);
+    int panel_y = TAB_BAR_HEIGHT;
+    int panel_h = client_h - panel_y;
+    if (panel_h < 0) panel_h = 0;
 
     for (int i = 0; i < TAB_COUNT; i++) {
         if (app->hwnd_panels[i]) {
             MoveWindow(app->hwnd_panels[i], 
-                       rc_display.left, 
-                       rc_display.top, 
-                       rc_display.right - rc_display.left, 
-                       rc_display.bottom - rc_display.top, 
+                       0, 
+                       panel_y, 
+                       total_w, 
+                       panel_h, 
                        TRUE);
         }
     }
@@ -158,17 +160,17 @@ ErrorCode gui_app_init(GuiApp *app, HINSTANCE h_instance, int n_cmd_show, System
         WC_TABCONTROL,
         "",
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
-        0, 0, GUI_WINDOW_WIDTH, GUI_WINDOW_HEIGHT - 30,
+        0, 0, GUI_WINDOW_WIDTH, TAB_BAR_HEIGHT,
         app->hwnd_main,
         NULL,
         h_instance,
         NULL
     );
 
-    /* Insert Navigation Tabs */
+    /* Insert Navigation Tabs (double ampersand '&&' escapes accelerator underscore) */
     const char *tab_titles[TAB_COUNT] = {
         "Dashboard",
-        "Setup & Matrices (P1)",
+        "Setup && Matrices (P1)",
         "Banker's Algorithm (P2)",
         "Deadlock Detection (P3)",
         "RAG Visualizer (P3/P4)"
@@ -191,10 +193,13 @@ ErrorCode gui_app_init(GuiApp *app, HINSTANCE h_instance, int n_cmd_show, System
     /* Initial panel display */
     resize_panels(app);
     gui_app_switch_tab(app, TAB_INDEX_DASHBOARD);
-    gui_app_set_status_bar(app, "Project Skeleton Ready | Architecture Established | Modules Unloaded (TODO)");
+    gui_app_set_status_bar(app, "Dashboard: System Overview & Shared State Status");
 
     ShowWindow(app->hwnd_main, n_cmd_show);
     UpdateWindow(app->hwnd_main);
+
+    /* Trigger layout and display refresh after window show */
+    gui_app_switch_tab(app, TAB_INDEX_DASHBOARD);
 
     LOG_INFO("GUI", "Deadlock Simulation System GUI window created successfully.");
     return ERR_SUCCESS;
@@ -208,7 +213,15 @@ void gui_app_switch_tab(GuiApp *app, GuiTab tab) {
 
     for (int i = 0; i < TAB_COUNT; i++) {
         if (app->hwnd_panels[i]) {
-            ShowWindow(app->hwnd_panels[i], (i == (int)tab) ? SW_SHOW : SW_HIDE);
+            if (i == (int)tab) {
+                ShowWindow(app->hwnd_panels[i], SW_SHOW);
+                BringWindowToTop(app->hwnd_panels[i]);
+                SetWindowPos(app->hwnd_panels[i], HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                InvalidateRect(app->hwnd_panels[i], NULL, TRUE);
+                UpdateWindow(app->hwnd_panels[i]);
+            } else {
+                ShowWindow(app->hwnd_panels[i], SW_HIDE);
+            }
         }
     }
 
@@ -254,4 +267,3 @@ int gui_app_run(GuiApp *app) {
     }
     return (int)msg.wParam;
 }
-

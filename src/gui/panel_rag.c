@@ -351,7 +351,7 @@ HWND panel_rag_create(HWND parent, SystemContext *ctx) {
         0,
         PANEL_RAG_CLASS,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
         0, 0, 100, 100,
         parent,
         NULL,
