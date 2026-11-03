@@ -1,72 +1,200 @@
-# CPU Process Scheduling Simulator (Week 3 PBL)
+# Deadlock Simulation System
 
-A command-line simulator written in **C (C11)** that schedules a set of processes with several
-CPU scheduling algorithms and reports the Gantt chart, Waiting Time (WT), Turnaround Time (TAT),
-Response Time (RT), their averages, and CPU utilization.
+An interactive graphical simulation system demonstrating operating system process scheduling, resource allocation, deadlock avoidance using **Banker's Algorithm**, multi-instance **Deadlock Detection**, **Resource Allocation Graph (RAG)** visualization, and **Victim Recovery**.
 
-## Algorithms
-| # | Algorithm | Owner |
-|---|---|---|
-| 4 | FCFS | Student 1 |
-| 5 | SJF - Non-preemptive | Student 1 |
-| 6 | SJF - Preemptive (SRTF) | Student 1 |
-| 7 | Priority - Non-preemptive | Student 2 |
-| 8 | Priority - Preemptive | Student 2 |
-| 9 | Round Robin (configurable time quantum) | Student 2 |
-| 10 | Run all and show a comparison table | Team Lead / Student 3 |
+Developed in pure **C** for Windows desktop environments.
 
-## Build and run
+---
+
+## 1. Technology Stack & Requirements
+
+- **Language:** C (Standard C11)
+- **Compiler:** GCC (MinGW-w64 / MSYS2 UCRT64)
+- **GUI Framework:** Native Windows C API (`user32.dll`, `gdi32.dll`, `comctl32.dll`)
+  - Zero external GUI library dependencies or third-party package managers required.
+  - Native Windows desktop controls with high performance and minimal memory footprint.
+- **Build Utilities:** Make / Batch (`build.bat`) / PowerShell (`build.ps1`)
+
+---
+
+## 2. Project Folder Structure
+
+```text
+CodeX-PBL-/
+├── bin/                                # Compiled executables (deadlock_sim.exe, test_skeleton.exe)
+├── build/                              # Intermediate build files
+├── docs/                               # Architectural and developer documentation
+│   ├── ARCHITECTURE.md                 # Data contracts, state invariants, module boundaries
+│   └── TEAM_GUIDELINES.md              # Team coding standards and contribution guidelines
+├── include/                            # Public C headers
+│   ├── common/                         # Shared core contracts
+│   │   ├── types.h                     # Limits, Enums, Error codes
+│   │   ├── system_state.h              # Master SystemState struct & vectors/matrices
+│   │   └── error.h                     # Error and status string translation
+│   ├── person1_process_resource/       # Person 1 interfaces
+│   │   ├── process_mgmt.h              # Process creation, removal, queries
+│   │   ├── resource_mgmt.h             # Resource types, instances, queries
+│   │   └── matrix_mgmt.h               # Allocation, Maximum, Need, Available calculations
+│   ├── person2_bankers/                # Person 2 interfaces
+│   │   └── bankers.h                   # Safety algorithm, Safe sequence, Request checks
+│   ├── person3_detection_recovery/     # Person 3 interfaces
+│   │   ├── detection.h                 # Deadlock detection & Outstanding requests
+│   │   ├── rag.h                       # Resource Allocation Graph nodes & edges
+│   │   └── recovery.h                  # Victim selection & termination workflow
+│   ├── person4_integration/           # Person 4 interfaces
+│   │   └── coordinator.h               # Application context & workflow orchestration
+│   ├── gui/                            # GUI Shell and tab panels
+│   │   ├── gui_app.h                   # Main window, event loop, navigation tabs
+│   │   ├── panel_dashboard.h           # System status & metrics dashboard
+│   │   ├── panel_setup.h               # Setup panel placeholder (Person 1)
+│   │   ├── panel_bankers.h             # Banker's algorithm panel placeholder (Person 2)
+│   │   ├── panel_detection.h           # Deadlock detection panel placeholder (Person 3)
+│   │   └── panel_rag.h                 # RAG graph visualization panel placeholder
+│   └── utils/
+│       └── logger.h                    # Component-based logging utility
+├── src/                                # C source implementations
+│   ├── main.c                          # Application entry point (WinMain / main)
+│   ├── common/
+│   │   ├── system_state.c              # State lifecycle & memory operations
+│   │   └── error.c                     # Error string conversion implementations
+│   ├── person1_process_resource/       # Person 1 implementation stubs
+│   │   ├── process_mgmt.c              # Process management stubs (TODO)
+│   │   ├── resource_mgmt.c             # Resource management stubs (TODO)
+│   │   └── matrix_mgmt.c               # Matrix calculation stubs (TODO)
+│   ├── person2_bankers/
+│   │   └── bankers.c                   # Banker's Algorithm stubs (TODO)
+│   ├── person3_detection_recovery/
+│   │   ├── detection.c                 # Deadlock detection stubs (TODO)
+│   │   ├── rag.c                       # RAG builder stubs (TODO)
+│   │   └── recovery.c                  # Recovery operation stubs (TODO)
+│   ├── person4_integration/
+│   │   └── coordinator.c               # Master workflow orchestration stubs
+│   ├── gui/
+│   │   ├── gui_app.c                   # Window procedure, tab layout, resize handler
+│   │   ├── panel_dashboard.c           # Dashboard UI panel shell
+│   │   ├── panel_setup.c               # Person 1 UI panel shell
+│   │   ├── panel_bankers.c             # Person 2 UI panel shell
+│   │   ├── panel_detection.c           # Person 3 UI panel shell
+│   │   └── panel_rag.c                 # RAG visualization canvas shell
+│   └── utils/
+│       └── logger.c                    # Console/diagnostic logger
+├── tests/
+│   └── test_skeleton.c                 # Test harness verifying all contracts and stubs
+├── build.bat                           # Windows Command Prompt build runner
+├── build.ps1                           # Windows PowerShell build runner
+├── Makefile                            # Standard GNU Makefile
+└── README.md                           # Project documentation
+```
+
+---
+
+## 3. Team Responsibilities
+
+| Role | Member | Responsibilities | Assigned Files |
+| :--- | :--- | :--- | :--- |
+| **Person 1** | Process & Resource Management | Process creation/removal, Resource instance setup, Allocation and Maximum Matrix entry, automatic Need Matrix and Available Vector calculations, preliminary request checks. | `include/person1_process_resource/*`, `src/person1_process_resource/*`, `include/gui/panel_setup.h`, `src/gui/panel_setup.c` |
+| **Person 2** | Banker's Algorithm & Safe State Analysis | Deadlock avoidance via Banker's Safety Algorithm, Safe Sequence computation, Trial-state request evaluation and rollback, step-by-step educational trace generation. | `include/person2_bankers/*`, `src/person2_bankers/*`, `include/gui/panel_bankers.h`, `src/gui/panel_bankers.c` |
+| **Person 3** | Deadlock Detection, Recovery, & RAG | Multi-instance Deadlock Detection algorithm using Outstanding Requests Matrix, Outstanding Request tracking, RAG graph data builder, victim selection heuristic, and recovery termination. | `include/person3_detection_recovery/*`, `src/person3_detection_recovery/*`, `include/gui/panel_detection.h`, `src/gui/panel_detection.c` |
+| **Person 4** | Architecture, GUI Coordination, & Integration | Project skeleton, shared contracts, coordinator orchestration, master GUI window, tab navigation, RAG rendering integration, end-to-end testing, and final delivery. | `include/common/*`, `include/person4_integration/*`, `include/gui/gui_app.*`, `src/main.c`, build configurations, `tests/*` |
+
+---
+
+## 4. Build Instructions
+
+### Prerequisites
+Make sure `gcc` is installed and available in your `PATH` (e.g. MSYS2 UCRT64 or MinGW-w64).
+
+### Option A: Using Windows Command Prompt (`build.bat`)
+```cmd
+# 1. Compile the GUI application
+build.bat
+
+# 2. Compile and run the verification test suite
+build.bat test
+
+# 3. Clean build artifacts
+build.bat clean
+```
+
+### Option B: Using Windows PowerShell (`build.ps1`)
+```powershell
+# 1. Compile the GUI application
+.\build.ps1
+
+# 2. Compile and run the test harness
+.\build.ps1 test
+
+# 3. Clean build artifacts
+.\build.ps1 clean
+```
+
+### Option C: Using GNU Make (`make`)
 ```bash
-make            # builds ./scheduler  (gcc -Wall -Wextra -std=c11)
-./scheduler
+# 1. Compile application
+make
+
+# 2. Compile and run test suite
+make test
+
+# 3. Clean build artifacts
 make clean
 ```
 
-## Input format
-For each process the program asks for:
-- **Process ID** (1-9999, must be unique)
-- **Arrival Time** (0-1000)
-- **Burst Time** (1-100)
-- **Priority** (0-100) - **lower number = higher priority**
+---
 
-Round Robin additionally asks for the **time quantum** (1-100) when it is run.
-Option 2 generates random processes (you choose how many and the maximum values).
-You can enter the processes once and switch between algorithms without re-entering data.
+## 5. Run Instructions
 
-## Conventions used by all algorithms
-- Time starts at 0; CPU idle time appears in the Gantt chart as an IDLE block.
-- Ties are broken by earlier arrival time, then smaller PID.
-- WT = TAT - BT, TAT = CT - AT, RT = first CPU time - AT.
-- CPU utilization = busy time / total time x 100.
+### Launching the Graphical Application
+```cmd
+# Via build tool:
+build.bat run
 
-## Menu
-```
-1. Enter processes manually      6. Run SJF (preemptive / SRTF)
-2. Generate random processes     7. Run Priority (non-preemptive)
-3. Display current processes     8. Run Priority (preemptive)
-4. Run FCFS                      9. Run Round Robin
-5. Run SJF (non-preemptive)     10. Run ALL algorithms and compare
-0. Exit
+# Or directly execute the binary:
+bin\deadlock_sim.exe
 ```
 
-## Project structure and ownership
-| File | Purpose | Owner |
-|---|---|---|
-| `common.h` / `common.c` | Shared structs, function contract, `gantt_add()` | Team Lead |
-| `main.c` | CLI menu, input, random generation, integration | Team Lead |
-| `fcfs.c`, `sjf.c` | FCFS, SJF (NP + preemptive) | Student 1 |
-| `priority.c`, `rr.c` | Priority (NP + preemptive), Round Robin | Student 2 |
-| `metrics.c`, `gantt.c` | Metrics, Gantt chart, tables, comparison | Student 3 |
-| `tests/` | Test cases and sample outputs | Student 3 |
-| `Makefile`, `README.md` | Build and documentation | Team Lead |
+When launched, the desktop application displays:
+- A responsive Windows window titled **"Deadlock Simulation System - PBL Architecture Skeleton"**.
+- A native **Tab Navigation Bar** containing:
+  1. **Dashboard:** Live state metrics and system classification (SAFE / UNSAFE / DEADLOCKED).
+  2. **Setup & Matrices (P1):** Planned forms and matrix tables for Person 1.
+  3. **Banker's Algorithm (P2):** Planned safety checks and safe sequence views for Person 2.
+  4. **Deadlock Detection (P3):** Planned detection algorithms, waiting requests, and recovery workflows for Person 3.
+  5. **RAG Visualizer (P3/P4):** Canvas layout for rendering nodes and directed edges.
+- A **Status Bar** indicating the active module and skeleton readiness.
 
-## Known limitations
-- Context-switch time is assumed to be zero.
-- The Gantt buffer holds 2000 blocks; extremely long Round Robin runs (very small quantum with
-  many long processes) may truncate the *chart* only - the metrics stay correct.
+---
 
-## Sample session
-_To be filled in after all modules are merged (see `tests/`)._
+## 6. Verification and Test Suite
 
-## Team
-Team Lead, Student 1, Student 2, Student 3 - see ownership table above.
+To verify that all shared headers, structs, memory rules, and function stubs compile and link correctly:
+```cmd
+build.bat test
+```
+The test harness runs 6 test suites with 23 assertions:
+- `[TEST SUITE 1] System State Lifecycle & Memory Contracts`
+- `[TEST SUITE 2] Person 1 Interface Stubs (Process & Resource Management)`
+- `[TEST SUITE 3] Person 2 Interface Stubs (Banker's Algorithm)`
+- `[TEST SUITE 4] Person 3 Interface Stubs (Detection, Recovery, RAG)`
+- `[TEST SUITE 5] Person 4 Interface Stubs (Integration Coordinator)`
+- `[TEST SUITE 6] Error Code & Status String Translations`
+
+---
+
+## 7. Instructions for Adding Future Implementations
+
+When implementing feature logic:
+
+1. **Do not modify interface signatures** without coordinating with Person 4.
+2. **Locate your assigned file** in `src/<your_module>/`:
+   - Person 1: `src/person1_process_resource/`
+   - Person 2: `src/person2_bankers/`
+   - Person 3: `src/person3_detection_recovery/`
+3. Replace the `/* TODO: Person X */` comment and `return ERR_NOT_IMPLEMENTED;` with your algorithm logic.
+4. **Follow Memory & State Invariants:**
+   - Person 1 updates `allocation`, `maximum`, `need`, and `available` in `SystemState`.
+   - Person 2 runs safety checks on copies of vectors (`Work = Available`) and must **never** modify the live state during an analysis or check.
+   - Person 3 runs detection against `outstanding_requests` and `allocation`, distinct from `need`.
+5. Connect your functional logic to the designated UI panel in `src/gui/panel_<your_module>.c`.
+6. Run `build.bat test` to verify your changes against the shared test suite.
+
