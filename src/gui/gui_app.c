@@ -226,10 +226,12 @@ void gui_app_switch_tab(GuiApp *app, GuiTab tab) {
             gui_app_set_status_bar(app, "Person 2: Banker's Algorithm and Safe State Analysis (Active Module)");
             break;
         case TAB_INDEX_DETECTION:
-            gui_app_set_status_bar(app, "Person 3: Deadlock Detection, Requests & Recovery [Pending Integration]");
+            panel_detection_refresh(app->hwnd_panels[TAB_INDEX_DETECTION], app->system_ctx);
+            gui_app_set_status_bar(app, "Person 3: Deadlock Detection, Requests & Recovery (Active Module)");
             break;
         case TAB_INDEX_RAG:
-            gui_app_set_status_bar(app, "Resource Allocation Graph (RAG) Visualizer [Pending Integration]");
+            panel_rag_refresh(app->hwnd_panels[TAB_INDEX_RAG], app->system_ctx);
+            gui_app_set_status_bar(app, "Person 3 / 4: Resource Allocation Graph (RAG) Visualizer (Active Module)");
             break;
         default:
             break;

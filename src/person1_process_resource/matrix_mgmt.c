@@ -283,10 +283,10 @@ ErrorCode sys_load_sample_configuration(SystemState *state, int sample_index) {
         return ERR_SUCCESS;
 
     } else if (sample_index == 1) {
-        /* Sample 1: Multi-resource Deadlock Scenario */
-        sys_resource_create(state, "R0", 2, NULL);
-        sys_resource_create(state, "R1", 2, NULL);
-        sys_resource_create(state, "R2", 2, NULL);
+        /* Sample 1: Multi-resource Circular Deadlock Scenario (Available = [0, 0, 0]) */
+        sys_resource_create(state, "R0", 1, NULL);
+        sys_resource_create(state, "R1", 1, NULL);
+        sys_resource_create(state, "R2", 1, NULL);
 
         for (int i = 0; i < 3; i++) {
             sys_process_create(state, NULL, NULL);
@@ -295,14 +295,17 @@ ErrorCode sys_load_sample_configuration(SystemState *state, int sample_index) {
         /* P0 holds R0 (1), requests R1 (1) */
         state->allocation[0][0] = 1; state->maximum[0][0] = 1;
         state->maximum[0][1] = 1; state->outstanding_requests[0][1] = 1;
+        state->processes[0].status = PROCESS_STATUS_WAITING;
 
         /* P1 holds R1 (1), requests R2 (1) */
         state->allocation[1][1] = 1; state->maximum[1][1] = 1;
         state->maximum[1][2] = 1; state->outstanding_requests[1][2] = 1;
+        state->processes[1].status = PROCESS_STATUS_WAITING;
 
         /* P2 holds R2 (1), requests R0 (1) */
         state->allocation[2][2] = 1; state->maximum[2][2] = 1;
         state->maximum[2][0] = 1; state->outstanding_requests[2][0] = 1;
+        state->processes[2].status = PROCESS_STATUS_WAITING;
 
         sys_matrix_calculate_need(state);
         sys_matrix_calculate_available(state);

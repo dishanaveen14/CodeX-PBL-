@@ -94,7 +94,7 @@ CodeX-PBL-/
 | :--- | :--- | :--- | :--- |
 | **Person 1** | Process & Resource Management | **[IMPLEMENTED]** Process creation/removal, Resource instance setup, Allocation and Maximum Matrix entry, automatic Need Matrix and Available Vector calculations, preliminary request validation, resource allocation/release operations, textbook preset loading, and interactive GUI setup panel. | `include/person1_process_resource/*`, `src/person1_process_resource/*`, `include/gui/panel_setup.h`, `src/gui/panel_setup.c` |
 | **Person 2** | Banker's Algorithm & Safe State Analysis | **[IMPLEMENTED]** Deadlock avoidance via Banker's Safety Algorithm (Work/Finish tracking), Safe Sequence discovery, Trial-state request evaluation and rollback on unsafe states, step-by-step educational trace generation, and interactive Banker's GUI panel. | `include/person2_bankers/*`, `src/person2_bankers/*`, `include/gui/panel_bankers.h`, `src/gui/panel_bankers.c` |
-| **Person 3** | Deadlock Detection, Recovery, & RAG | Multi-instance Deadlock Detection algorithm using Outstanding Requests Matrix, Outstanding Request tracking, RAG graph data builder, victim selection heuristic, and recovery termination. | `include/person3_detection_recovery/*`, `src/person3_detection_recovery/*`, `include/gui/panel_detection.h`, `src/gui/panel_detection.c` |
+| **Person 3** | Deadlock Detection, Recovery, & RAG | **[IMPLEMENTED]** Multi-instance Deadlock Detection algorithm (using Outstanding Requests Matrix), Outstanding Request tracking, Resource Allocation Graph data builder and GDI visualizer, victim selection heuristic, recovery via victim termination, and interactive Detection & RAG GUI panels. | `include/person3_detection_recovery/*`, `src/person3_detection_recovery/*`, `include/gui/panel_detection.h`, `src/gui/panel_detection.c`, `include/gui/panel_rag.h`, `src/gui/panel_rag.c` |
 | **Person 4** | Architecture, GUI Coordination, & Integration | Project skeleton, shared contracts, coordinator orchestration, master GUI window, tab navigation, RAG rendering integration, end-to-end testing, and final delivery. | `include/common/*`, `include/person4_integration/*`, `include/gui/gui_app.*`, `src/main.c`, build configurations, `tests/*` |
 
 ---
@@ -171,7 +171,7 @@ To verify that all shared headers, structs, memory rules, and function stubs com
 ```cmd
 build.bat test
 ```
-The test harness runs 9 test suites with 83 assertions:
+The test harness runs 12 test suites with 117 assertions:
 - `[TEST SUITE 1] System State Lifecycle & Memory Contracts`
 - `[TEST SUITE 2] Person 1: Process Creation, Queries & Safe Removal`
 - `[TEST SUITE 3] Person 1: Resource Creation, Instances & Total Updates`
@@ -180,7 +180,10 @@ The test harness runs 9 test suites with 83 assertions:
 - `[TEST SUITE 6] Person 2: Banker's Safety Algorithm (Safe State Analysis)`
 - `[TEST SUITE 7] Person 2: Banker's Safety Algorithm (Unsafe State Analysis)`
 - `[TEST SUITE 8] Person 2: Banker's Resource-Request Avoidance Algorithm`
-- `[TEST SUITE 9] Person 3 & 4 Stubs Pending Implementation`
+- `[TEST SUITE 9] Person 3: Deadlock Detection & Outstanding Requests`
+- `[TEST SUITE 10] Person 3: Resource Allocation Graph (RAG) Construction`
+- `[TEST SUITE 11] Person 3: Deadlock Recovery & Victim Termination`
+- `[TEST SUITE 12] Person 4 Stubs Pending Final Integration`
 
 ---
 

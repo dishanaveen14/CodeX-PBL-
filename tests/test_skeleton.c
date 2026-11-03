@@ -2,8 +2,8 @@
  * @file test_skeleton.c
  * @brief Integration and Verification Test Suite.
  * 
- * Verifies Person 1 (Process & Resource Management) and Person 2 (Banker's Algorithm
- * & Safe-State Analysis) implementations, plus Person 3 and 4 stubs.
+ * Verifies Person 1 (Process & Resource Management), Person 2 (Banker's Algorithm),
+ * and Person 3 (Deadlock Detection, Recovery, and RAG), plus Person 4 integration stubs.
  */
 
 #include <stdio.h>
@@ -207,7 +207,6 @@ static void test_person2_safety_check_safe_state(void) {
     SystemState state;
     sys_load_sample_configuration(&state, 0); /* Load textbook 5P/3R configuration */
 
-    /* Verify baseline state */
     TEST_ASSERT(state.available[0] == 3 && state.available[1] == 3 && state.available[2] == 2, "Textbook Available is [3, 3, 2]");
 
     BankerSafetyResult result;
@@ -217,19 +216,16 @@ static void test_person2_safety_check_safe_state(void) {
     TEST_ASSERT(result.safe_sequence.is_valid == true, "Safe sequence is marked valid");
     TEST_ASSERT(result.safe_sequence.length == 5, "Safe sequence length is 5 (all processes finish)");
     TEST_ASSERT(result.unfinished_count == 0, "Unfinished process count is 0");
-
-    /* Check that P1 finishes first in textbook order */
     TEST_ASSERT(result.safe_sequence.sequence[0] == 1, "First process in safe sequence is P1");
 
-    /* Verify live state was NOT modified during safety check */
+    /* Live state unchanged */
     TEST_ASSERT(state.available[0] == 3 && state.available[1] == 3 && state.available[2] == 2, "Live Available vector untouched [3, 3, 2]");
     TEST_ASSERT(state.allocation[1][0] == 2, "Live Allocation for P1 untouched [2, 0, 0]");
 
-    /* Verify step-by-step trace was recorded */
+    /* Step trace */
     TEST_ASSERT(result.step_count == 5, "Recorded exactly 5 step-by-step Work updates");
     TEST_ASSERT(result.steps[0].work_after[0] == 5, "Step 1 Work[A] after P1 finishes becomes 3 + 2 = 5");
 
-    /* Safe sequence formatting */
     char seq_str[128];
     banker_format_safe_sequence(&state, &result.safe_sequence, seq_str, sizeof(seq_str));
     TEST_ASSERT(strstr(seq_str, "P1 ->") != NULL, "Safe sequence string contains 'P1 ->'");
@@ -240,7 +236,7 @@ static void test_person2_safety_check_unsafe_state(void) {
     SystemState state;
     sys_load_sample_configuration(&state, 0);
 
-    /* Allocate all available instances so no process can satisfy its Need */
+    /* Zero out available so no process can satisfy Need */
     state.available[0] = 0;
     state.available[1] = 0;
     state.available[2] = 0;
@@ -275,24 +271,21 @@ static void test_person2_request_evaluation_grant_and_deny(void) {
     TEST_ASSERT(state.available[0] == 3, "Live Available[0] remains 3 (not mutated before commit)");
     TEST_ASSERT(state.allocation[1][0] == 2, "Live Allocation[P1][0] remains 2");
 
-    /* Case B: P4 requests (3, 3, 0) - Exceeds Need (Need for P4 is [4, 3, 1], Need[B] is 3, wait, P0 requests (8, 0, 0) exceeds Need) */
-    int req_over_need[3] = {8, 0, 0}; /* Need[0] is [7, 4, 3] */
+    /* Case B: Rejects request exceeding remaining Need */
+    int req_over_need[3] = {8, 0, 0};
     BankerRequestResult res_over_need;
     err = banker_evaluate_resource_request(&state, 0, req_over_need, &res_over_need);
     TEST_ASSERT(err == ERR_EXCEEDS_NEED, "Rejects request exceeding remaining Need");
     TEST_ASSERT(res_over_need.is_granted == false, "Request denied");
 
-    /* Case C: P0 requests (0, 4, 0) - Exceeds Available (Available[B] is 3) */
+    /* Case C: Rejects request exceeding Available */
     int req_over_avail[3] = {0, 4, 0};
     BankerRequestResult res_over_avail;
     err = banker_evaluate_resource_request(&state, 0, req_over_avail, &res_over_avail);
     TEST_ASSERT(err == ERR_INSUFFICIENT_AVAILABLE, "Rejects request exceeding Available");
     TEST_ASSERT(res_over_avail.is_granted == false, "Request must wait");
 
-    /* Case D: Request that passes preliminary checks (Req <= Need and Req <= Avail) but results in UNSAFE state */
-    /* Textbook Silberschatz avoidance example: Total = 12, P0: Alloc 5, Max 10; P1: Alloc 2, Max 4; P2: Alloc 2, Max 9.
-       Available = 3. If P2 requests 1, Available becomes 2. P1 finishes and Work becomes 4, but P0 needs 5 and P2 needs 6.
-       Neither can finish, so trial state is UNSAFE! */
+    /* Case D: Request passing preliminary checks but resulting in UNSAFE state */
     SystemState unsafe_demo;
     system_state_init(&unsafe_demo);
     sys_process_create(&unsafe_demo, "P0", NULL);
@@ -315,25 +308,130 @@ static void test_person2_request_evaluation_grant_and_deny(void) {
     TEST_ASSERT(unsafe_demo.available[0] == 3, "Live unsafe_demo Available[0] preserved as 3");
 }
 
-static void test_person3_and_4_stubs(void) {
-    printf("[TEST SUITE 9] Person 3 & 4 Stubs Pending Implementation\n");
+static void test_person3_deadlock_detection(void) {
+    printf("[TEST SUITE 9] Person 3: Deadlock Detection & Outstanding Requests\n");
     SystemState state;
-    system_state_init(&state);
 
+    /* 1. Test No Deadlock scenario (Sample 0 preset: no outstanding requests) */
+    sys_load_sample_configuration(&state, 0);
+    DeadlockResult no_dl_res;
+    ErrorCode err = detection_run(&state, &no_dl_res);
+    TEST_ASSERT(err == ERR_SUCCESS, "detection_run succeeds on safe state");
+    TEST_ASSERT(no_dl_res.deadlock_detected == false, "State with 0 outstanding requests is NOT deadlocked");
+    TEST_ASSERT(no_dl_res.deadlocked_count == 0, "Deadlocked process count is 0");
+
+    /* 2. Record Outstanding Requests (Tracking) */
+    int wait_req[3] = {1, 0, 1};
+    err = detection_record_outstanding_request(&state, 0, wait_req);
+    TEST_ASSERT(err == ERR_SUCCESS, "detection_record_outstanding_request succeeds");
+    TEST_ASSERT(state.outstanding_requests[0][0] == 1, "Outstanding request recorded");
+    TEST_ASSERT(state.processes[0].status == PROCESS_STATUS_WAITING, "Process status updated to WAITING");
+
+    bool is_waiting = false;
+    detection_is_process_waiting(&state, 0, &is_waiting);
+    TEST_ASSERT(is_waiting == true, "detection_is_process_waiting confirms waiting status");
+
+    detection_clear_outstanding_request(&state, 0);
+    detection_is_process_waiting(&state, 0, &is_waiting);
+    TEST_ASSERT(is_waiting == false, "detection_clear_outstanding_request resets waiting status");
+
+    /* 3. Test Deadlock Detection on circular wait state (Sample 1 preset) */
+    sys_load_sample_configuration(&state, 1);
     DeadlockResult dl_res;
-    TEST_ASSERT(detection_run(&state, &dl_res) == ERR_NOT_IMPLEMENTED, "Person 3 Detection stub intact");
+    err = detection_run(&state, &dl_res);
+    TEST_ASSERT(err == ERR_SUCCESS, "detection_run succeeds on circular wait state");
+    TEST_ASSERT(dl_res.deadlock_detected == true, "Deadlock correctly DETECTED");
+    TEST_ASSERT(dl_res.deadlocked_count == 3, "All 3 processes (P0, P1, P2) in circular wait are deadlocked");
+    TEST_ASSERT(dl_res.involved_resource_count == 3, "All 3 resource types (R0, R1, R2) are involved");
+    TEST_ASSERT(strstr(dl_res.explanation, "DEADLOCK DETECTED") != NULL, "Explanation accurately reports DEADLOCK");
+}
+
+static void test_person3_resource_allocation_graph(void) {
+    printf("[TEST SUITE 10] Person 3: Resource Allocation Graph (RAG) Construction\n");
+    SystemState state;
+    sys_load_sample_configuration(&state, 1); /* 3 processes, 3 resources in circular wait */
 
     RAGGraph graph;
-    TEST_ASSERT(rag_build_from_state(&state, &graph) == ERR_NOT_IMPLEMENTED, "Person 3 RAG stub intact");
+    ErrorCode err = rag_build_from_state(&state, &graph);
+    TEST_ASSERT(err == ERR_SUCCESS, "rag_build_from_state succeeds");
+    TEST_ASSERT(graph.node_count == 6, "Graph contains exactly 6 nodes (3 processes + 3 resources)");
 
+    /* Verify edge counts: 3 allocation edges and 3 request edges */
+    TEST_ASSERT(graph.edge_count == 6, "Graph contains 6 edges total (3 allocations + 3 requests)");
+
+    int alloc_edge_count = 0;
+    int req_edge_count = 0;
+    int cycle_edge_count = 0;
+
+    for (int e = 0; e < graph.edge_count; e++) {
+        if (graph.edges[e].edge_type == RAG_EDGE_ALLOCATION) {
+            alloc_edge_count++;
+            TEST_ASSERT(graph.edges[e].from_type == RAG_NODE_RESOURCE && graph.edges[e].to_type == RAG_NODE_PROCESS,
+                        "Allocation edge directed from Resource -> Process");
+        } else if (graph.edges[e].edge_type == RAG_EDGE_REQUEST) {
+            req_edge_count++;
+            TEST_ASSERT(graph.edges[e].from_type == RAG_NODE_PROCESS && graph.edges[e].to_type == RAG_NODE_RESOURCE,
+                        "Request edge directed from Process -> Resource");
+        }
+        if (graph.edges[e].is_deadlock_cycle) {
+            cycle_edge_count++;
+        }
+    }
+
+    TEST_ASSERT(alloc_edge_count == 3, "Found 3 allocation edges");
+    TEST_ASSERT(req_edge_count == 3, "Found 3 request edges");
+    TEST_ASSERT(cycle_edge_count == 6, "All 6 edges participating in the deadlock cycle are flagged");
+
+    /* Reset RAG */
+    err = rag_reset(&graph);
+    TEST_ASSERT(err == ERR_SUCCESS && graph.node_count == 0 && graph.edge_count == 0, "rag_reset clears graph");
+}
+
+static void test_person3_deadlock_recovery(void) {
+    printf("[TEST SUITE 11] Person 3: Deadlock Recovery & Victim Termination\n");
+    SystemState state;
+    sys_load_sample_configuration(&state, 1); /* Deadlocked state */
+
+    DeadlockResult dl_res;
+    detection_run(&state, &dl_res);
+    TEST_ASSERT(dl_res.deadlock_detected == true, "Confirmed starting with deadlocked state");
+
+    /* 1. Victim Selection Heuristic */
+    int victim_id = -1;
+    ErrorCode err = recovery_select_victim(&state, &dl_res, &victim_id);
+    TEST_ASSERT(err == ERR_SUCCESS, "recovery_select_victim succeeds");
+    TEST_ASSERT(victim_id >= 0 && victim_id < 3, "Victim selected is one of the deadlocked processes");
+
+    /* 2. Execute Victim Termination & Recovery */
+    RecoveryResult rec_res;
+    err = recovery_execute_victim_termination(&state, victim_id, &rec_res);
+    TEST_ASSERT(err == ERR_SUCCESS, "recovery_execute_victim_termination succeeds");
+    TEST_ASSERT(rec_res.success == true, "Recovery outcome marked as success");
+    TEST_ASSERT(state.processes[victim_id].status == PROCESS_STATUS_TERMINATED, "Victim process status set to TERMINATED");
+
+    /* Verify victim allocations reclaimed */
+    int victim_held_after = 0;
+    for (int j = 0; j < state.resource_count; j++) {
+        victim_held_after += state.allocation[victim_id][j];
+    }
+    TEST_ASSERT(victim_held_after == 0, "Victim allocation cleared to 0");
+    TEST_ASSERT(state.available[victim_id] == 1, "Victim's held resource released back to Available vector");
+
+    /* Verify deadlock was broken */
+    TEST_ASSERT(rec_res.post_recovery_detection.deadlock_detected == false, "Post-recovery detection confirms deadlock ELIMINATED!");
+}
+
+static void test_person4_stubs(void) {
+    printf("[TEST SUITE 12] Person 4 Stubs Pending Final Integration\n");
     SystemContext ctx;
-    coordinator_init(&ctx);
+    ErrorCode err = coordinator_init(&ctx);
+    TEST_ASSERT(err == ERR_SUCCESS, "coordinator_init succeeds and initializes state");
     TEST_ASSERT(coordinator_run_full_analysis(&ctx) == ERR_NOT_IMPLEMENTED, "Person 4 Coordinator stub intact");
 }
 
 int main(void) {
     printf("=================================================================\n");
-    printf(" Deadlock Simulation System - Person 1, 2 & Skeleton Test Suite  \n");
+    printf(" Deadlock Simulation System - Person 1, 2, 3 & Test Suite        \n");
     printf("=================================================================\n\n");
 
     test_system_state_lifecycle();
@@ -352,7 +450,13 @@ int main(void) {
     printf("\n");
     test_person2_request_evaluation_grant_and_deny();
     printf("\n");
-    test_person3_and_4_stubs();
+    test_person3_deadlock_detection();
+    printf("\n");
+    test_person3_resource_allocation_graph();
+    printf("\n");
+    test_person3_deadlock_recovery();
+    printf("\n");
+    test_person4_stubs();
 
     printf("\n=================================================================\n");
     printf(" Test Results: %d / %d Passed\n", g_tests_passed, g_tests_run);
