@@ -394,12 +394,35 @@ static LRESULT CALLBACK SetupPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
             return 0;
         }
 
+        case WM_CTLCOLORSTATIC: {
+            HDC hdcStatic = (HDC)wParam;
+            SetBkMode(hdcStatic, OPAQUE);
+            SetBkColor(hdcStatic, GetSysColor(COLOR_BTNFACE));
+            SetTextColor(hdcStatic, GetSysColor(COLOR_WINDOWTEXT));
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+        }
+
+        case WM_CTLCOLORBTN: {
+            HDC hdcBtn = (HDC)wParam;
+            SetBkMode(hdcBtn, OPAQUE);
+            SetBkColor(hdcBtn, GetSysColor(COLOR_BTNFACE));
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+        }
+
+        case WM_ERASEBKGND: {
+            HDC hdc = (HDC)wParam;
+            RECT rc;
+            GetClientRect(hwnd, &rc);
+            FillRect(hdc, &rc, GetSysColorBrush(COLOR_BTNFACE));
+            return 1;
+        }
+
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
             RECT rect;
             GetClientRect(hwnd, &rect);
-            FillRect(hdc, &rect, (HBRUSH)(COLOR_BTNFACE + 1));
+            FillRect(hdc, &rect, GetSysColorBrush(COLOR_BTNFACE));
             EndPaint(hwnd, &ps);
             return 0;
         }
@@ -500,10 +523,10 @@ HWND panel_setup_create(HWND parent, SystemContext *ctx) {
                  145, 300, 80, 22, panel, (HMENU)IDC_BTN_SET_MAX, hInstance, NULL);
 
     /* Group 4: Resource Request and Release */
-    CreateWindow("BUTTON", "4. Resource Request & Release", WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+    CreateWindow("BUTTON", "4. Resource Request && Release", WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
                  15, 340, 310, 115, panel, NULL, hInstance, NULL);
 
-    CreateWindow("STATIC", "Req Vector (e.g. 1,0,2):", WS_CHILD | WS_VISIBLE, 25, 362, 170, 18, panel, NULL, hInstance, NULL);
+    CreateWindow("STATIC", "Req Vector (e.g. 1,0,2):", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 25, 362, 170, 18, panel, NULL, hInstance, NULL);
     g_edit_req_vec = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", "0, 0, 0", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
                                     25, 385, 285, 22, panel, (HMENU)IDC_EDIT_REQ_VEC, hInstance, NULL);
 
@@ -524,8 +547,8 @@ HWND panel_setup_create(HWND parent, SystemContext *ctx) {
                  25, 545, 285, 24, panel, (HMENU)IDC_BTN_RESET_STATE, hInstance, NULL);
 
     /* Right Column: Live Matrix & Vector Display (Width = remaining) */
-    CreateWindow("STATIC", "Live Matrix & Vector Inspection (Auto-recalculated Need & Available):",
-                 WS_CHILD | WS_VISIBLE, 340, 10, 680, 20, panel, NULL, hInstance, NULL);
+    CreateWindow("STATIC", "Live Matrix && Vector Inspection (Auto-recalculated Need && Available):",
+                 WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 340, 10, 680, 20, panel, NULL, hInstance, NULL);
 
     /* Monospaced Font for Tables */
     HFONT hFont = CreateFont(15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,

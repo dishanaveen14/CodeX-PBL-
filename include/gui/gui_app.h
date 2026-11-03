@@ -78,6 +78,12 @@ void gui_app_switch_tab(GuiApp *app, GuiTab tab);
  */
 void gui_app_set_status_bar(GuiApp *app, const char *status_text);
 
+/**
+ * @brief Recursively applies modern Segoe UI font to all child controls of a window.
+ * @param parent Parent window handle.
+ */
+void gui_apply_standard_font(HWND parent);
+
 #ifdef __cplusplus
 }
 #endif

@@ -45,12 +45,35 @@ static void set_dashboard_feedback(const char *msg) {
 
 static LRESULT CALLBACK DashboardPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
+        case WM_CTLCOLORSTATIC: {
+            HDC hdcStatic = (HDC)wParam;
+            SetBkMode(hdcStatic, OPAQUE);
+            SetBkColor(hdcStatic, GetSysColor(COLOR_BTNFACE));
+            SetTextColor(hdcStatic, GetSysColor(COLOR_WINDOWTEXT));
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+        }
+
+        case WM_CTLCOLORBTN: {
+            HDC hdcBtn = (HDC)wParam;
+            SetBkMode(hdcBtn, OPAQUE);
+            SetBkColor(hdcBtn, GetSysColor(COLOR_BTNFACE));
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+        }
+
+        case WM_ERASEBKGND: {
+            HDC hdc = (HDC)wParam;
+            RECT rc;
+            GetClientRect(hwnd, &rc);
+            FillRect(hdc, &rc, GetSysColorBrush(COLOR_BTNFACE));
+            return 1;
+        }
+
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
             RECT rect;
             GetClientRect(hwnd, &rect);
-            FillRect(hdc, &rect, (HBRUSH)(COLOR_BTNFACE + 1));
+            FillRect(hdc, &rect, GetSysColorBrush(COLOR_BTNFACE));
             EndPaint(hwnd, &ps);
             return 0;
         }
@@ -135,8 +158,8 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
     /* Title Label */
     CreateWindow(
         "STATIC",
-        "System Overview & Integration Dashboard (Person 4 Coordinator)",
-        WS_CHILD | WS_VISIBLE | SS_LEFT,
+        "System Overview && Integration Dashboard (Person 4 Coordinator)",
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
         20, 15, 700, 22,
         panel, NULL, hInstance, NULL
     );
@@ -144,9 +167,9 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
     /* Description */
     CreateWindow(
         "STATIC",
-        "Central coordinator orchestrating Person 1 (State & Matrices), Person 2 (Banker's Algorithm), "
-        "and Person 3 (Deadlock Detection & RAG).",
-        WS_CHILD | WS_VISIBLE | SS_LEFT,
+        "Central coordinator orchestrating Person 1 (State && Matrices), Person 2 (Banker's Algorithm), "
+        "and Person 3 (Deadlock Detection && RAG).",
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
         20, 38, 960, 20,
         panel, NULL, hInstance, NULL
     );
@@ -196,15 +219,15 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
     g_hwnd_status_static = CreateWindow(
         "STATIC",
         "Status: UNCHECKED\n\nClick 'Run Full System Analysis' or select a preset to analyze.",
-        WS_CHILD | WS_VISIBLE | SS_LEFT,
-        35, 130, 450, 140,
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
+        35, 128, 450, 142,
         panel, (HMENU)(INT_PTR)IDC_STATIC_DASH_STATUS, hInstance, NULL
     );
 
     /* Group Box 2: Subsystem Integration Summary */
     CreateWindow(
         "BUTTON",
-        "Subsystem Roles & Module Status",
+        "Subsystem Roles && Module Status",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
         520, 105, 480, 175,
         panel, NULL, hInstance, NULL
@@ -212,12 +235,12 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
 
     g_hwnd_subsystems_static = CreateWindow(
         "STATIC",
-        "Person 1: Process & Resource Mgmt, Allocation & Need Matrices [ONLINE]\n"
-        "Person 2: Banker's Algorithm, Safety Analysis, Safe Sequences [ONLINE]\n"
-        "Person 3: Deadlock Detection, Request Tracker, RAG Visualizer, Recovery [ONLINE]\n"
+        "Person 1: Process && Resource Mgmt, Allocation && Need Matrices [ONLINE]\n\n"
+        "Person 2: Banker's Algorithm, Safety Analysis, Safe Sequences [ONLINE]\n\n"
+        "Person 3: Deadlock Detection, Request Tracker, RAG Visualizer, Recovery [ONLINE]\n\n"
         "Person 4: Coordinator, Multi-module Workflow, Integrated Validation [ONLINE]",
-        WS_CHILD | WS_VISIBLE | SS_LEFT,
-        535, 130, 450, 140,
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
+        535, 128, 450, 142,
         panel, (HMENU)(INT_PTR)IDC_STATIC_DASH_SUBSYSTEMS, hInstance, NULL
     );
 
@@ -226,7 +249,7 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
         "BUTTON",
         "Integrated System Metrics (Live State + Algorithm Findings)",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        20, 290, 980, 180,
+        20, 290, 980, 185,
         panel, NULL, hInstance, NULL
     );
 
@@ -234,8 +257,8 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
         "STATIC",
         "Active Processes: 0\n"
         "Configured Resource Types: 0\n",
-        WS_CHILD | WS_VISIBLE | SS_LEFT,
-        35, 315, 950, 145,
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
+        35, 315, 950, 150,
         panel, (HMENU)(INT_PTR)IDC_STATIC_DASH_METRICS, hInstance, NULL
     );
 
@@ -243,8 +266,8 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
     g_hwnd_feedback_static = CreateWindow(
         "STATIC",
         "Coordinator Status: Ready. All four team modules loaded and operational.",
-        WS_CHILD | WS_VISIBLE | SS_LEFT,
-        20, 480, 980, 22,
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
+        20, 485, 980, 22,
         panel, (HMENU)(INT_PTR)IDC_STATIC_DASH_FEEDBACK, hInstance, NULL
     );
 
@@ -280,6 +303,7 @@ void panel_dashboard_refresh(HWND panel, const SystemContext *ctx) {
             ctx->latest_safety_result.is_safe ? "Computed (Safe Execution Path Available)" : "None Available",
             ctx->latest_deadlock_result.deadlocked_count);
         SetWindowText(g_hwnd_status_static, status_buf);
+        InvalidateRect(g_hwnd_status_static, NULL, TRUE);
     }
 
     if (g_hwnd_metrics_static) {
@@ -313,7 +337,7 @@ void panel_dashboard_refresh(HWND panel, const SystemContext *ctx) {
             "  Total Resources:     %s\n"
             "  Available Resources: %s\n\n"
             "[Person 2: Banker's Algorithm] Safety Check: %s | Evaluation Steps: %d\n\n"
-            "[Person 3: Deadlock & RAG] Deadlock Detected: %s | Waiting Processes: %d | RAG Nodes: %d | RAG Edges: %d\n\n"
+            "[Person 3: Deadlock && RAG] Deadlock Detected: %s | Waiting Processes: %d | RAG Nodes: %d | RAG Edges: %d\n\n"
             "[Person 4: Integration] All modules connected via central Coordinator workflow.",
             st->process_count, MAX_PROCESSES,
             st->resource_count, MAX_RESOURCES,
@@ -327,5 +351,6 @@ void panel_dashboard_refresh(HWND panel, const SystemContext *ctx) {
             ctx->latest_rag.edge_count);
 
         SetWindowText(g_hwnd_metrics_static, metrics_buf);
+        InvalidateRect(g_hwnd_metrics_static, NULL, TRUE);
     }
 }

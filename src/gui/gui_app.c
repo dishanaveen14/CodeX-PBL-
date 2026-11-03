@@ -19,6 +19,29 @@
 #define TAB_BAR_HEIGHT    30
 
 static GuiApp *g_app_instance = NULL;
+static HFONT g_default_gui_font = NULL;
+
+void gui_apply_standard_font(HWND parent) {
+    if (!parent) return;
+
+    if (!g_default_gui_font) {
+        /* Crisp, modern Segoe UI (approx 9pt / 13px at 96 DPI) */
+        g_default_gui_font = CreateFont(
+            -13, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Segoe UI"
+        );
+        if (!g_default_gui_font) {
+            g_default_gui_font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        }
+    }
+
+    HWND child = GetWindow(parent, GW_CHILD);
+    while (child) {
+        SendMessage(child, WM_SETFONT, (WPARAM)g_default_gui_font, TRUE);
+        child = GetWindow(child, GW_HWNDNEXT);
+    }
+}
 
 static void resize_panels(GuiApp *app) {
     if (!app || !app->hwnd_tab) return;
@@ -85,6 +108,10 @@ static LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
         }
 
         case WM_DESTROY:
+            if (g_default_gui_font) {
+                DeleteObject(g_default_gui_font);
+                g_default_gui_font = NULL;
+            }
             PostQuitMessage(0);
             return 0;
 
@@ -190,6 +217,16 @@ ErrorCode gui_app_init(GuiApp *app, HINSTANCE h_instance, int n_cmd_show, System
     app->hwnd_panels[TAB_INDEX_DETECTION] = panel_detection_create(app->hwnd_main, ctx);
     app->hwnd_panels[TAB_INDEX_RAG]       = panel_rag_create(app->hwnd_main, ctx);
 
+    /* Apply clean font to all panels and tab header */
+    for (int i = 0; i < TAB_COUNT; i++) {
+        if (app->hwnd_panels[i]) {
+            gui_apply_standard_font(app->hwnd_panels[i]);
+        }
+    }
+    if (g_default_gui_font) {
+        SendMessage(app->hwnd_tab, WM_SETFONT, (WPARAM)g_default_gui_font, TRUE);
+    }
+
     /* Initial panel display */
     resize_panels(app);
     gui_app_switch_tab(app, TAB_INDEX_DASHBOARD);
@@ -211,18 +248,20 @@ void gui_app_switch_tab(GuiApp *app, GuiTab tab) {
     app->current_tab = tab;
     TabCtrl_SetCurSel(app->hwnd_tab, tab);
 
+    /* 1. Hide all non-selected panels first to prevent bleed-through */
     for (int i = 0; i < TAB_COUNT; i++) {
-        if (app->hwnd_panels[i]) {
-            if (i == (int)tab) {
-                ShowWindow(app->hwnd_panels[i], SW_SHOW);
-                BringWindowToTop(app->hwnd_panels[i]);
-                SetWindowPos(app->hwnd_panels[i], HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-                InvalidateRect(app->hwnd_panels[i], NULL, TRUE);
-                UpdateWindow(app->hwnd_panels[i]);
-            } else {
-                ShowWindow(app->hwnd_panels[i], SW_HIDE);
-            }
+        if (app->hwnd_panels[i] && i != (int)tab) {
+            ShowWindow(app->hwnd_panels[i], SW_HIDE);
         }
+    }
+
+    /* 2. Show, bring to front, and repaint active panel */
+    if (app->hwnd_panels[tab]) {
+        ShowWindow(app->hwnd_panels[tab], SW_SHOW);
+        BringWindowToTop(app->hwnd_panels[tab]);
+        SetWindowPos(app->hwnd_panels[tab], HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        InvalidateRect(app->hwnd_panels[tab], NULL, TRUE);
+        UpdateWindow(app->hwnd_panels[tab]);
     }
 
     switch (tab) {

@@ -297,6 +297,25 @@ static LRESULT CALLBACK RAGPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
             return 0;
         }
 
+        case WM_CTLCOLORSTATIC: {
+            HDC hdcStatic = (HDC)wParam;
+            SetBkMode(hdcStatic, OPAQUE);
+            SetBkColor(hdcStatic, GetSysColor(COLOR_BTNFACE));
+            SetTextColor(hdcStatic, GetSysColor(COLOR_WINDOWTEXT));
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+        }
+
+        case WM_CTLCOLORBTN: {
+            HDC hdcBtn = (HDC)wParam;
+            SetBkMode(hdcBtn, OPAQUE);
+            SetBkColor(hdcBtn, GetSysColor(COLOR_BTNFACE));
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+        }
+
+        case WM_ERASEBKGND: {
+            return 1;
+        }
+
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
@@ -361,7 +380,7 @@ HWND panel_rag_create(HWND parent, SystemContext *ctx) {
     g_hwnd_rag_panel = panel;
 
     /* Refresh Button */
-    CreateWindow("BUTTON", "Re-generate & Refresh Graph", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+    CreateWindow("BUTTON", "Re-generate && Refresh Graph", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                  750, 12, 230, 28, panel, (HMENU)IDC_BTN_REFRESH_RAG, hInstance, NULL);
 
     if (ctx) {

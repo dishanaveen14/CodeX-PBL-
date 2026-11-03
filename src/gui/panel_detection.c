@@ -326,12 +326,35 @@ static LRESULT CALLBACK DetectionPanelProc(HWND hwnd, UINT uMsg, WPARAM wParam, 
             return 0;
         }
 
+        case WM_CTLCOLORSTATIC: {
+            HDC hdcStatic = (HDC)wParam;
+            SetBkMode(hdcStatic, OPAQUE);
+            SetBkColor(hdcStatic, GetSysColor(COLOR_BTNFACE));
+            SetTextColor(hdcStatic, GetSysColor(COLOR_WINDOWTEXT));
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+        }
+
+        case WM_CTLCOLORBTN: {
+            HDC hdcBtn = (HDC)wParam;
+            SetBkMode(hdcBtn, OPAQUE);
+            SetBkColor(hdcBtn, GetSysColor(COLOR_BTNFACE));
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+        }
+
+        case WM_ERASEBKGND: {
+            HDC hdc = (HDC)wParam;
+            RECT rc;
+            GetClientRect(hwnd, &rc);
+            FillRect(hdc, &rc, GetSysColorBrush(COLOR_BTNFACE));
+            return 1;
+        }
+
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
             RECT rect;
             GetClientRect(hwnd, &rect);
-            FillRect(hdc, &rect, (HBRUSH)(COLOR_BTNFACE + 1));
+            FillRect(hdc, &rect, GetSysColorBrush(COLOR_BTNFACE));
             EndPaint(hwnd, &ps);
             return 0;
         }
@@ -438,7 +461,7 @@ HWND panel_detection_create(HWND parent, SystemContext *ctx) {
     CreateWindow("BUTTON", "Auto-Select Victim (Heuristic)", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                  25, 425, 310, 26, panel, (HMENU)IDC_BTN_SUGGEST_VICTIM, hInstance, NULL);
 
-    CreateWindow("BUTTON", "Terminate Victim & Recover", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+    CreateWindow("BUTTON", "Terminate Victim && Recover", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                  25, 460, 310, 30, panel, (HMENU)IDC_BTN_TERMINATE_VICTIM, hInstance, NULL);
 
     CreateWindow("STATIC",
@@ -447,12 +470,12 @@ HWND panel_detection_create(HWND parent, SystemContext *ctx) {
         " - Releases all held allocations to Available.\r\n"
         " - Clears outstanding request.\r\n"
         " - Re-runs detection to confirm deadlock broken.",
-        WS_CHILD | WS_VISIBLE | SS_LEFT,
+        WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX,
         25, 500, 310, 70, panel, NULL, hInstance, NULL);
 
     /* Right Column: Detailed Diagnostics & Matrix View */
-    CreateWindow("STATIC", "Outstanding Request Matrix & Deadlock Diagnostics:",
-                 WS_CHILD | WS_VISIBLE, 360, 10, 660, 20, panel, NULL, hInstance, NULL);
+    CreateWindow("STATIC", "Outstanding Request Matrix && Deadlock Diagnostics:",
+                 WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 360, 10, 660, 20, panel, NULL, hInstance, NULL);
 
     HFONT hFont = CreateFont(15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                              ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
