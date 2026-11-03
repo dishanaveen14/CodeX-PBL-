@@ -56,7 +56,15 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
-        if self.path == '/api/command':
+        if self.path == '/api/logs/clear':
+            if os.path.exists(LOG_PATH):
+                with open(LOG_PATH, 'w') as f:
+                    f.truncate(0)
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "cleared"}).encode())
+        elif self.path == '/api/command':
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data)

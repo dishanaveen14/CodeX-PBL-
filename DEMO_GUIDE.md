@@ -7,7 +7,7 @@ A multi-process system simulation demonstrating POSIX Inter-Process Communicatio
 ## Project Structure
 
 ```
-files/
+CodeX-PBL-/
 ├── common/
 │   └── ipc.h               # Shared Logger contract (log_msg_t, LOG_QUEUE_NAME, LVL_*)
 ├── core/
@@ -30,9 +30,9 @@ files/
 
 ## Prerequisites
 
-- Linux (POSIX mqueue requires Linux; WSL2 works on Windows)
-- GCC ≥ 7, make, librt (usually included with glibc)
-- Python 3 (for the UI server)
+- **Linux / WSL2 on Windows** (POSIX mqueue and fork/pipe IPC require a Linux environment)
+- **GCC ≥ 7**, **make**, **librt** (standard in `build-essential`)
+- **Python 3** (for the UI server)
 
 ---
 
@@ -40,21 +40,26 @@ files/
 
 ### Quick start (all-in-one script)
 
+#### On Linux / WSL Terminal:
 ```bash
-cd files
 chmod +x run.sh
 ./run.sh           # build + Logger + Core + UI server
 ```
 
-Navigate to `http://localhost:8080` to access the dashboard.
+#### On Windows (PowerShell / Command Prompt with WSL installed):
+```powershell
+wsl ./run.sh
+```
+
+Navigate to `http://localhost:8080` in your browser to access the dashboard.  
+When finished, press `Ctrl+C` in the terminal to automatically stop the UI server and gracefully shut down the Logger.
 
 ### Manual startup
 
 If you want to run the components manually:
 
-**Step 1 — Start the Logger** (must come first so `/sim_log` exists):
+**Step 1 — Build and start the Logger** (must come first so `/sim_log` exists):
 ```bash
-cd files
 make all
 ./build/logger &           # Logger runs in background, writes to sim.log
 ```
@@ -65,7 +70,7 @@ python3 ui/server.py
 ```
 *(The server automatically launches the Core process and pipes API requests to it).*
 
-**Step 3 — Stop the Logger** (after shutting down the UI server with Ctrl+C):
+**Step 3 — Stop the Logger** (after shutting down the UI server with `Ctrl+C`):
 ```bash
 ./build/tests/test_sender shutdown   # sends LVL_SHUTDOWN to the Logger
 ```

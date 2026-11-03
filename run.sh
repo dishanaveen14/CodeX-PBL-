@@ -19,15 +19,20 @@ make all
 
 echo ""
 echo "=== Starting Logger (background) ==="
+rm -f sim.log*
 build/logger &
 LOGGER_PID=$!
 sleep 0.3
+
+cleanup() {
+    echo ""
+    echo "=== Shutting down Logger (PID $LOGGER_PID) ==="
+    build/tests/test_sender shutdown 2>/dev/null || true
+    wait $LOGGER_PID 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
 
 echo ""
 echo "=== Starting UI Server Bridge ==="
 echo "Navigate to http://localhost:8080"
 python3 ui/server.py
-
-echo "=== Sending Logger shutdown ==="
-build/tests/test_sender shutdown
-wait $LOGGER_PID

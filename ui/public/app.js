@@ -1,4 +1,5 @@
 let isExecuting = false;
+let isInitialLogLoad = true;
 
 async function apiCall(command) {
     try {
@@ -12,6 +13,16 @@ async function apiCall(command) {
     } catch (err) {
         console.error(err);
         return 'ERROR Server unreachable';
+    }
+}
+
+async function clearLogs() {
+    try {
+        await fetch('/api/logs/clear', { method: 'POST' });
+        const feed = document.getElementById('log-feed');
+        feed.innerHTML = '';
+    } catch (err) {
+        console.error('Failed to clear logs:', err);
     }
 }
 
@@ -36,7 +47,10 @@ async function updateLogs() {
                 return `<div class="log-entry ${cls}">${log}</div>`;
             }).join('');
             
-            if (wasAtBottom) feed.scrollTop = feed.scrollHeight;
+            if (wasAtBottom || isInitialLogLoad) {
+                feed.scrollTop = feed.scrollHeight;
+                isInitialLogLoad = false;
+            }
             
             document.getElementById('logger-status').textContent = 'Logger: Active';
             document.getElementById('logger-status').className = 'badge ok';

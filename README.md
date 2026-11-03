@@ -3,7 +3,7 @@
 
 ---
 
-. TITLE PAGE**
+## 1. Title Page
 
 * **Project Title:** Multi-Process Simulator with Pipe-Based Inter-Process Communication (IPC)
 * **Milestone:** Week 4 – Multi-Process Architecture, Pipe IPC Implementation & System Integration
@@ -18,7 +18,56 @@
 
 ---
 
-INTRODUCTION**
+## Quick Start — Running the System
+
+For an in-depth walkthrough and IPC Addition walkthrough, see [DEMO_GUIDE.md](DEMO_GUIDE.md).
+
+### Prerequisites
+- **Linux or WSL2 on Windows** (required for POSIX `pipe()`, `fork()`, and message queues `mqueue`)
+- **GCC ≥ 7, make, librt** (`sudo apt install build-essential`)
+- **Python 3** (for the UI server)
+
+### 1-Step Launch (Recommended)
+```bash
+# On Linux / WSL:
+chmod +x run.sh
+./run.sh
+
+# On Windows (from PowerShell or CMD with WSL installed):
+wsl ./run.sh
+```
+This builds all C binaries, launches the asynchronous Logger daemon in the background, spins up the Core process, and starts the Web UI server at:
+👉 **`http://localhost:8080`**
+
+Press `Ctrl+C` in the terminal to automatically stop the UI server and gracefully shut down the Logger daemon.
+
+### Manual Step-by-Step Launch
+1. **Compile the binaries:**
+   ```bash
+   make all
+   ```
+2. **Start the Logger daemon:**
+   ```bash
+   ./build/logger &
+   ```
+3. **Start the Web UI & Core bridge:**
+   ```bash
+   python3 ui/server.py
+   ```
+4. **Graceful shutdown:**
+   After terminating the UI server with `Ctrl+C`, stop the Logger:
+   ```bash
+   ./build/tests/test_sender shutdown
+   ```
+
+### Running Test Suites
+```bash
+make test
+```
+
+---
+
+## 2. Introduction
 
 In modern operating systems, process isolation is a fundamental architectural principle. Virtual memory management guarantees that each executing process possesses a private, protected address space. While this isolation prevents unauthorized memory modification and ensures fault containment, practical applications—such as simulation engines, databases, client-server applications, and system monitoring suites—require robust mechanisms to exchange information.
 
@@ -26,7 +75,7 @@ The **Multi-Process Simulator** is an operating system simulation platform desig
 
 ---
 
- OBJECTIVE**
+## 3. Objectives
 
 The key objectives for the Week 4 milestone include:
 1. **Multi-Process Partitioning:** Partition the simulator into decoupled, autonomous processes: an interactive User Interface (UI) process, a central Simulation Core process, child worker processes, and an asynchronous system Logger daemon.
@@ -38,7 +87,7 @@ The key objectives for the Week 4 milestone include:
 
 ---
 
- PROJECT OVERVIEW**
+## 4. Project Overview
 
 The Multi-Process Simulator models a distributed computing node in which work requests entered by an operator are parsed, scheduled, computed, and logged across distinct address spaces:
 
@@ -59,14 +108,15 @@ The Multi-Process Simulator models a distributed computing node in which work re
 
 ---
 
- WHY THIS MATTERS**
+## 5. Why This Matters
 
 1. **True Fault Containment:** In single-process or multi-threaded programs, a memory fault (e.g., `SIGSEGV`) terminates the entire application. In our multi-process design, if a worker encounters an error, the Core traps the termination status through `waitpid()`, logs the fault via the Logger, and continues running.
 2. **Kernel-Enforced Stream Synchronization:** Pipes rely on kernel-level ring buffers. Reading from an empty pipe automatically blocks the reader until data is available, providing synchronization without busy-waiting CPU loops.
 3. **Real-World Systems Engineering:** Decoupling user interaction (UI), computational processing (Core), and disk I/O (Logger) reflects industry-standard architectures, such as web browser process models and microkernel operating systems.
 
 ---
- SYSTEM ARCHITECTURE DIAGRAM**
+
+## 6. System Architecture Diagram
 
 The complete architecture illustrates process boundaries, data communication directions, and the coordinating integration layer:
 
@@ -123,7 +173,7 @@ The complete architecture illustrates process boundaries, data communication dir
 
 ---
 
-. ARCHITECTURE EXPLANATION**
+## 7. Architecture Explanation
 
 1. **Topology Initialization:** Prior to creating any child processes, the **Integration Layer** invokes the `pipe()` system call to allocate pipe descriptors (`cmd_pipe`, `ui_resp_pipe`, `log_pipe`). Because file descriptors are preserved across `fork()`, all child processes inherit access to the communication channels.
 2. **Descriptor Boundary Pruning:** Immediately after each process is forked, unused ends of pipes are closed. For example, the UI closes the read end of `cmd_pipe[0]` and retains write end `cmd_pipe[1]`. This ensures unidirectional flow and guarantees that readers detect an End-Of-File (EOF) when the writer terminates.
@@ -132,7 +182,7 @@ The complete architecture illustrates process boundaries, data communication dir
 5. **Integration & Coordination:** The Team Leader layer coordinates startup ordering, handles process cleanup via `waitpid()`, monitors pipe status flags, and ensures a clean shutdown sequence.
 
 
-. IPC USING PIPES**
+## 8. IPC Using Pipes
 
 This simulator relies exclusively on **UNIX Pipes** for inter-process communication:
 
@@ -172,7 +222,7 @@ This simulator relies exclusively on **UNIX Pipes** for inter-process communicat
 
 ---
 
- TEAM RESPONSIBILITIES**
+## 9. Team Responsibilities
 
 | Member | Role | Key Deliverables & Responsibilities |
 |---|---|---|
@@ -182,7 +232,7 @@ This simulator relies exclusively on **UNIX Pipes** for inter-process communicat
 | **Disha Naveen** | **Team Leader / Integration** | Overall architecture, pipe lifecycle management, wire protocol specification, deadlock prevention, system integration testing. |
 
 
- PERFORMANCE MONITORING**
+## 10. Performance Monitoring
 
 | Performance Metric | Observed Empirical Measurement |
 |---|---|
@@ -193,7 +243,7 @@ This simulator relies exclusively on **UNIX Pipes** for inter-process communicat
 | **Memory Footprint (All 4 Processes Combined)** | < 8.4 MB Resident Set Size (RSS) |
 | **CPU Utilization Under Stress** | 12.4% (balanced across CPU cores) |
 
- CHALLENGES AND SOLUTIONS**
+## 11. Challenges and Solutions
 
 1. **Pipeline Deadlocks:**
    * *Problem:* Both parent and child processes blocked waiting for data on empty pipes.
@@ -210,7 +260,7 @@ This simulator relies exclusively on **UNIX Pipes** for inter-process communicat
 
 ---
 
-FINAL DEMONSTRATION**
+## 12. Final Demonstration
 
 * **Compilation & Startup:** The system compiles cleanly with `gcc -Wall -Wextra` without warnings. Executing the binary launches the Logger daemon, initializes the Core, and renders the live UI console.
 * **Interactive Command Execution:** The evaluator inputs arithmetic or simulation commands (e.g., `ADD 450 920`). The UI dashboard updates in real time, showing worker processes transitioning from READY to RUNNING to TERMINATED.
@@ -219,11 +269,14 @@ FINAL DEMONSTRATION**
 
 ---
 
- CONCLUSION**
+## 13. Conclusion
 
-The **Week 2 Multi-Process Simulator & IPC** project demonstrates the practical application of inter-process communication using **UNIX Pipes**. By decomposing the system into distinct operational modules—the **UI Process (Bathin)**, the **Core Process (Dhanush)**, the **Logger (Sohan)**, and the **Integration Layer (Disha Naveen)**—the project achieves:
+The **Week 4 Multi-Process Simulator & IPC** project demonstrates the practical application of inter-process communication using **UNIX Pipes**. By decomposing the system into distinct operational modules—the **UI Process (Bathin)**, the **Core Process (Dhanush)**, the **Logger (Sohan)**, and the **Integration Layer (Disha Naveen)**—the project achieves:
 * Strict process address space isolation and reliable lifecycle management.
 * High-throughput, deadlock-free inter-process data exchange using kernel pipes.
+* Real-time monitoring and decoupled event logging.
+
+The implementation confirms that pipe-based IPC offers a dependable, low-overhead mechanism for building multi-process applications in POSIX-compliant environments.
 * Real-time monitoring and decoupled event logging.
 
 The implementation confirms that pipe-based IPC offers a dependable, low-overhead mechanism for building multi-process applications in POSIX-compliant environments.

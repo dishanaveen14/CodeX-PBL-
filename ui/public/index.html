@@ -19,14 +19,20 @@
         <!-- IPC Addition -->
         <section class="card module-ipc">
             <h2>IPC Fork/Pipe Addition Demo</h2>
-            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+            <p class="module-desc">
                 Process 1 owns Number 1. Process 2 owns Number 2. 
                 Process 2 sends its number to Process 1 via a POSIX pipe, 
                 and Process 1 computes the sum.
             </p>
             <div class="controls">
-                <input type="number" id="ipc-num1" placeholder="Number 1 (Process 1)">
-                <input type="number" id="ipc-num2" placeholder="Number 2 (Process 2)">
+                <div class="input-group">
+                    <label for="ipc-num1">Number 1 (Process 1)</label>
+                    <input type="number" class="input-field" id="ipc-num1" placeholder="Enter first number...">
+                </div>
+                <div class="input-group">
+                    <label for="ipc-num2">Number 2 (Process 2)</label>
+                    <input type="number" class="input-field" id="ipc-num2" placeholder="Enter second number...">
+                </div>
                 <button class="primary" id="btn-add" onclick="execIPC()">Add Numbers</button>
             </div>
             <div class="ipc-status" id="ipc-status">Waiting for input...</div>
@@ -35,7 +41,10 @@
 
         <!-- Logger Feed -->
         <section class="card module-logger">
-            <h2>System Log (sim.log)</h2>
+            <div class="card-header-row">
+                <h2>System Log (sim.log)</h2>
+                <button class="secondary btn-sm" onclick="clearLogs()">Clear Log</button>
+            </div>
             <div class="log-container" id="log-feed">
                 <!-- Logs will be populated here -->
             </div>

@@ -94,6 +94,25 @@ header {
     color: var(--text-main);
 }
 
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.card-header-row h2 {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.module-desc {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
 .registers {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -126,6 +145,45 @@ input {
     outline: none;
 }
 
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 180px;
+}
+
+.input-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.input-field {
+    background: #0f172a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.65rem 0.9rem;
+    color: #38bdf8;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.input-field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.input-field::placeholder {
+    color: #475569;
+    font-weight: 400;
+}
+
 .val {
     color: var(--success);
     font-size: 1.1rem;
@@ -136,18 +194,31 @@ input {
 .controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.ipc-status {
+    background: #0f172a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
 }
 
 button {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
+    padding: 0.65rem 1.2rem;
+    border-radius: 8px;
     border: none;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     background: var(--border);
     color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 button:hover { background: #475569; }
 
@@ -156,6 +227,21 @@ button.primary {
 }
 button.primary:hover {
     background: var(--accent-hover);
+}
+
+button.secondary {
+    background: rgba(51, 65, 85, 0.6);
+    color: var(--text-muted);
+}
+button.secondary:hover {
+    background: rgba(71, 85, 105, 0.8);
+    color: var(--text-main);
+}
+
+.btn-sm {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
 }
 
 .ds-row {
