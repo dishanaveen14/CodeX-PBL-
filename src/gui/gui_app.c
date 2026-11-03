@@ -222,7 +222,8 @@ void gui_app_switch_tab(GuiApp *app, GuiTab tab) {
             gui_app_set_status_bar(app, "Person 1: Process and Resource Management (Active Module)");
             break;
         case TAB_INDEX_BANKERS:
-            gui_app_set_status_bar(app, "Person 2: Banker's Algorithm and Safe State Analysis [Pending Integration]");
+            panel_bankers_refresh(app->hwnd_panels[TAB_INDEX_BANKERS], app->system_ctx);
+            gui_app_set_status_bar(app, "Person 2: Banker's Algorithm and Safe State Analysis (Active Module)");
             break;
         case TAB_INDEX_DETECTION:
             gui_app_set_status_bar(app, "Person 3: Deadlock Detection, Requests & Recovery [Pending Integration]");

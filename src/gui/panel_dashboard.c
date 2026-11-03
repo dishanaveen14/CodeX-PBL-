@@ -116,7 +116,7 @@ HWND panel_dashboard_create(HWND parent, SystemContext *ctx) {
         "STATIC",
         "Member Assignments:\n"
         "  - Person 1: Process & Resource Management, Allocation/Need Matrices [ACTIVE]\n"
-        "  - Person 2: Banker's Algorithm, Safety Check, Safe Sequence [STUB]\n"
+        "  - Person 2: Banker's Algorithm, Safety Check, Safe Sequence [ACTIVE]\n"
         "  - Person 3: Deadlock Detection, Recovery, Resource Allocation Graph [STUB]\n"
         "  - Person 4: System Architecture, State Contracts, GUI & Integration",
         WS_CHILD | WS_VISIBLE | SS_LEFT,

@@ -99,6 +99,7 @@ Header file:
   - `banker_find_safe_sequence(state, out_sequence)`
   - `banker_evaluate_resource_request(state, pid, req_vector, out_result)`
   - `banker_get_safety_explanation(result)`
+  - `banker_format_safe_sequence(state, sequence, out_str, max_len)`
 
 **Protocol for Request Evaluation:**
 1. Check $\text{Request} \le \text{Need}[i]$.

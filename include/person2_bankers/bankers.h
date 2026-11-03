@@ -4,8 +4,6 @@
  * 
  * Deadlock Simulation System - PBL Project
  * Assigned to: Person 2 (Banker's Algorithm and Safe-State Analysis)
- * 
- * Note: FUNCTION DECLARATIONS ONLY. Do not add algorithm implementations here.
  */
 
 #ifndef BANKERS_H
@@ -122,9 +120,20 @@ ErrorCode banker_evaluate_resource_request(const SystemState *state,
  */
 const char* banker_get_safety_explanation(const BankerSafetyResult *result);
 
+/**
+ * @brief Formats a safe sequence into a readable string (e.g. "P1 -> P3 -> P4 -> P0 -> P2").
+ * 
+ * @param state Pointer to the system state (for process names).
+ * @param sequence Pointer to SafeSequence.
+ * @param out_str Buffer to write formatted text into.
+ * @param max_len Size of buffer.
+ */
+void banker_format_safe_sequence(const SystemState *state, const SafeSequence *sequence, char *out_str, size_t max_len);
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* BANKERS_H */
+
 
