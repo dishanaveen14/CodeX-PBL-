@@ -62,13 +62,25 @@ switch ($Target.ToLower()) {
     "test" {
         Write-Host "[BUILD] Compiling test suite..." -ForegroundColor Yellow
         & $CC @CFLAGS @TEST_SRCS -o "bin/test_skeleton.exe"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[ERROR] Test compilation failed!" -ForegroundColor Red
+            exit $LASTEXITCODE
+        }
         Write-Host "[RUN] Executing test runner..." -ForegroundColor Yellow
         & "bin/test_skeleton.exe"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[ERROR] Test suite failed!" -ForegroundColor Red
+            exit $LASTEXITCODE
+        }
     }
     "run" {
         if (!(Test-Path "bin/deadlock_sim.exe")) {
             Write-Host "[BUILD] Executable not found. Compiling first..." -ForegroundColor Yellow
             & $CC @CFLAGS @SRCS @LDFLAGS_GUI -o "bin/deadlock_sim.exe"
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "[ERROR] Compilation failed!" -ForegroundColor Red
+                exit $LASTEXITCODE
+            }
         }
         Write-Host "[RUN] Launching bin/deadlock_sim.exe..." -ForegroundColor Green
         Start-Process "bin/deadlock_sim.exe"
@@ -76,6 +88,10 @@ switch ($Target.ToLower()) {
     default {
         Write-Host "[BUILD] Compiling application..." -ForegroundColor Yellow
         & $CC @CFLAGS @SRCS @LDFLAGS_GUI -o "bin/deadlock_sim.exe"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[ERROR] Compilation failed!" -ForegroundColor Red
+            exit $LASTEXITCODE
+        }
         Write-Host "[SUCCESS] Application compiled: bin/deadlock_sim.exe" -ForegroundColor Green
     }
 }

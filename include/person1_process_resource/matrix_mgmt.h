@@ -4,8 +4,6 @@
  * 
  * Deadlock Simulation System - PBL Project
  * Assigned to: Person 1 (Process and Resource Management)
- * 
- * Note: FUNCTION DECLARATIONS ONLY. Do not add algorithm implementations here.
  */
 
 #ifndef MATRIX_MGMT_H
@@ -107,9 +105,18 @@ ErrorCode sys_allocation_apply(SystemState *state, int process_id, const int *re
  */
 ErrorCode sys_resources_release(SystemState *state, int process_id, const int *release_vector);
 
+/**
+ * @brief Loads a standard sample configuration for testing and demonstration.
+ * 
+ * @param state Pointer to the system state.
+ * @param sample_index 0 = Standard Textbook Safe State (5 processes, 3 resources),
+ *                     1 = Deadlocked Scenario with outstanding requests.
+ * @return ERR_SUCCESS on success, ERR_INVALID_PARAM on invalid sample index.
+ */
+ErrorCode sys_load_sample_configuration(SystemState *state, int sample_index);
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* MATRIX_MGMT_H */
-

@@ -35,6 +35,8 @@ const char* error_code_to_string(ErrorCode code) {
             return "No deadlock currently detected";
         case ERR_VICTIM_INVALID:
             return "Selected recovery victim is invalid";
+        case ERR_OUT_OF_BOUNDS:
+            return "Index or coordinate out of valid range";
         default:
             return "Unknown error code";
     }

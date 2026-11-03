@@ -70,7 +70,8 @@ typedef enum {
     ERR_INSUFFICIENT_AVAILABLE   = -9,  /**< Request exceeds currently Available resources */
     ERR_SYSTEM_UNSAFE            = -10, /**< Request would leave system in unsafe state */
     ERR_NO_DEADLOCK_DETECTED     = -11, /**< Recovery attempted but system is not deadlocked */
-    ERR_VICTIM_INVALID           = -12  /**< Specified recovery victim is invalid */
+    ERR_VICTIM_INVALID           = -12, /**< Specified recovery victim is invalid */
+    ERR_OUT_OF_BOUNDS            = -13  /**< Index or coordinate out of valid range */
 } ErrorCode;
 
 #ifdef __cplusplus

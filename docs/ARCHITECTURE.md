@@ -90,6 +90,7 @@ Header files:
   - `sys_request_validate_preliminary(state, pid, request_vector)`
   - `sys_allocation_apply(state, pid, request_vector)`
   - `sys_resources_release(state, pid, release_vector)`
+  - `sys_load_sample_configuration(state, sample_index)` (Sample 0 = Textbook Safe 5P/3R, Sample 1 = Circular Deadlock)
 
 ### 4.2 Person 2: Banker's Algorithm and Safety Analysis
 Header file:

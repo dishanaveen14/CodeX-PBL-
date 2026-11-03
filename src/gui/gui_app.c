@@ -214,19 +214,21 @@ void gui_app_switch_tab(GuiApp *app, GuiTab tab) {
 
     switch (tab) {
         case TAB_INDEX_DASHBOARD:
+            panel_dashboard_refresh(app->hwnd_panels[TAB_INDEX_DASHBOARD], app->system_ctx);
             gui_app_set_status_bar(app, "Dashboard: System Overview & Shared State Status");
             break;
         case TAB_INDEX_SETUP:
-            gui_app_set_status_bar(app, "Person 1: Process and Resource Management [Skeleton Placeholder]");
+            panel_setup_refresh(app->hwnd_panels[TAB_INDEX_SETUP], app->system_ctx);
+            gui_app_set_status_bar(app, "Person 1: Process and Resource Management (Active Module)");
             break;
         case TAB_INDEX_BANKERS:
-            gui_app_set_status_bar(app, "Person 2: Banker's Algorithm and Safe State Analysis [Skeleton Placeholder]");
+            gui_app_set_status_bar(app, "Person 2: Banker's Algorithm and Safe State Analysis [Pending Integration]");
             break;
         case TAB_INDEX_DETECTION:
-            gui_app_set_status_bar(app, "Person 3: Deadlock Detection, Requests & Recovery [Skeleton Placeholder]");
+            gui_app_set_status_bar(app, "Person 3: Deadlock Detection, Requests & Recovery [Pending Integration]");
             break;
         case TAB_INDEX_RAG:
-            gui_app_set_status_bar(app, "Resource Allocation Graph (RAG) Visualizer [Skeleton Placeholder]");
+            gui_app_set_status_bar(app, "Resource Allocation Graph (RAG) Visualizer [Pending Integration]");
             break;
         default:
             break;
