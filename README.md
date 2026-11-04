@@ -1,7 +1,7 @@
 # Simulation and Comparative Analysis of Page Replacement Algorithms
 
-> **Current Status: Structural Skeleton Phase (Week 5)**  
-> *Note: This codebase currently establishes the foundational project structure, common data structures, module interfaces, memory management rules, and build scripts. Placeholder function bodies and TODO markers are established for team members. The actual page replacement algorithms (FIFO, LRU, Optimal) and GUI table rendering are pending independent development by assigned team members.*
+> **Current Status: Fully Integrated & Tested Application (Week 5)**  
+> *All components assigned across the four team members (Person 1: FIFO & LRU, Person 2: Optimal & Engine/Statistics, Person 3: GTK GUI & Input Validation, Person 4: Integration, Build System & Documentation) are fully implemented and verified.*
 
 ---
 
@@ -15,7 +15,7 @@ The application allows users to:
 3. View the memory frame state at each reference step.
 4. Distinguish between page hits and page faults.
 5. Compute key performance metrics: total hits, total faults, hit ratio (%), and fault ratio (%).
-6. Compare performance across all three algorithms side-by-side.
+6. Compare performance across all three algorithms side-by-side with step-by-step detail tabs.
 
 ---
 
@@ -27,15 +27,14 @@ The application allows users to:
 - **Data Structures:** Standard C arrays, structs, and dynamic memory allocation
 - **Version Control:** Git
 
-*No external or secondary languages (such as Python or JavaScript) are used. The simulation engine, data structures, statistics, validation, and GUI integration are implemented purely in C.*
+*No external or secondary languages (such as Python or JavaScript) are used. The simulation engine, algorithms, data structures, statistics, validation, and GUI integration are implemented purely in C.*
 
 ---
 
 ## 3. Project Directory Structure
 
 ```text
-page-replacement-simulator/
-│
+CodeX-PBL-/
 ├── include/
 │   └── common.h                # Global constants, limits, and status codes
 │
@@ -89,12 +88,12 @@ page-replacement-simulator/
 
 The workload is partitioned across four members:
 
-| Member | Primary Responsibility | Assigned Files |
-|---|---|---|
-| **Person 1** | FIFO and LRU algorithms | `src/algorithms/fifo.c`, `fifo.h`<br>`src/algorithms/lru.c`, `lru.h`<br>`tests/test_fifo.c`, `test_lru.c` |
-| **Person 2** | Optimal algorithm, simulation engine & statistics | `src/algorithms/optimal.c`, `optimal.h`<br>`src/core/simulation.c`, `simulation.h`<br>`src/core/simulation_types.h`<br>`src/core/statistics.c`, `statistics.h`<br>`tests/test_optimal.c`, `test_simulation.c` |
-| **Person 3** | GTK GUI and input validation | `src/gui/main.c`<br>`src/gui/main_window.c`, `main_window.h`<br>`src/gui/results_view.c`, `results_view.h`<br>`src/gui/input_validation.c`, `input_validation.h` |
-| **Person 4** | Final integration, Makefile, testing & documentation | `Makefile`<br>`README.md`<br>`docs/integration_notes.md`<br>`tests/test_integration.c`<br>`src/utils/memory.c`, `memory.h` |
+| Member | Primary Responsibility | Assigned Files | Status |
+|---|---|---|---|
+| **Person 1** | FIFO and LRU algorithms | `src/algorithms/fifo.c`, `fifo.h`<br>`src/algorithms/lru.c`, `lru.h`<br>`tests/test_fifo.c`, `test_lru.c` | **Completed** |
+| **Person 2** | Optimal algorithm, simulation engine & statistics | `src/algorithms/optimal.c`, `optimal.h`<br>`src/core/simulation.c`, `simulation.h`<br>`src/core/simulation_types.h`<br>`src/core/statistics.c`, `statistics.h`<br>`tests/test_optimal.c`, `test_simulation.c` | **Completed** |
+| **Person 3** | GTK GUI and input validation | `src/gui/main.c`<br>`src/gui/main_window.c`, `main_window.h`<br>`src/gui/results_view.c`, `results_view.h`<br>`src/gui/input_validation.c`, `input_validation.h` | **Completed** |
+| **Person 4** | Final integration, Makefile, testing & documentation | `Makefile`<br>`README.md`<br>`docs/integration_notes.md`<br>`tests/test_integration.c`<br>`src/utils/memory.c`, `memory.h` | **Completed** |
 
 ---
 
@@ -138,7 +137,7 @@ make
 make run
 ```
 
-### Run the Test Suites
+### Run All Test Suites
 The unit and integration test suites can be compiled and executed directly:
 ```bash
 make test
@@ -151,10 +150,14 @@ make clean
 
 ---
 
-## 7. Memory Management & Ownership Rules
+## 7. Comparative Benchmark Summary
 
-- Dynamic allocation is managed through `src/utils/memory.c`.
-- **References:** Allocated during parsing in `parse_and_validate_reference_string()` and freed by caller with `free_parsed_references()`.
-- **Simulation Results:** Allocated by `create_simulation_result()` and freed recursively via `free_simulation_result()` or `free_simulation_results()`.
-- All frame snapshots are allocated and freed cleanly without memory leaks or dangling pointers.
+For the reference string `7 0 1 2 0 3 0 4 2 3` with `3` physical frames:
 
+| Metric | FIFO | LRU | Optimal |
+|---|---|---|---|
+| **Total References** | 10 | 10 | 10 |
+| **Page Hits** | 1 | 2 | 4 |
+| **Page Faults** | 9 | 8 | 6 |
+| **Hit Ratio (%)** | 10.00% | 20.00% | 40.00% |
+| **Fault Ratio (%)** | 90.00% | 80.00% | 60.00% |

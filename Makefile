@@ -109,13 +109,13 @@ test: $(TEST_BINS)
 	@echo "All tests passed successfully!"
 	@echo "=========================================="
 
-$(BIN_DIR)/test_fifo: $(TEST_DIR)/test_fifo.c $(SRC_DIR)/algorithms/fifo.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
+$(BIN_DIR)/test_fifo: $(TEST_DIR)/test_fifo.c $(SRC_DIR)/algorithms/fifo.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-$(BIN_DIR)/test_lru: $(TEST_DIR)/test_lru.c $(SRC_DIR)/algorithms/lru.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
+$(BIN_DIR)/test_lru: $(TEST_DIR)/test_lru.c $(SRC_DIR)/algorithms/lru.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-$(BIN_DIR)/test_optimal: $(TEST_DIR)/test_optimal.c $(SRC_DIR)/algorithms/optimal.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
+$(BIN_DIR)/test_optimal: $(TEST_DIR)/test_optimal.c $(SRC_DIR)/algorithms/optimal.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
 $(BIN_DIR)/test_simulation: $(TEST_DIR)/test_simulation.c $(CORE_SRCS) | $(BIN_DIR)
@@ -123,4 +123,3 @@ $(BIN_DIR)/test_simulation: $(TEST_DIR)/test_simulation.c $(CORE_SRCS) | $(BIN_D
 
 $(BIN_DIR)/test_integration: $(TEST_DIR)/test_integration.c $(CORE_SRCS) $(SRC_DIR)/gui/input_validation.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@ -lm
-
