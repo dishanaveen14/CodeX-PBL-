@@ -51,5 +51,19 @@ SimulationResult **run_simulation(
  */
 const char *algorithm_choice_to_string(AlgorithmChoice choice);
 
-#endif /* SIMULATION_H */
+/**
+ * @brief Releases memory for a single simulation result.
+ *
+ * @param result Pointer to SimulationResult to free.
+ */
+void free_simulation_result(SimulationResult *result);
 
+/**
+ * @brief Releases memory for an array of simulation results.
+ *
+ * @param results Array of SimulationResult pointers to free.
+ * @param result_count Number of elements in results array.
+ */
+void free_simulation_results(SimulationResult **results, int result_count);
+
+#endif /* SIMULATION_H */
