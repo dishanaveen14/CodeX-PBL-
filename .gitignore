@@ -1,0 +1,27 @@
+# Compiled object files and libraries
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+*.a
+
+# Executables
+bin/
+build/
+*.exe
+*.out
+*.app
+
+# Logs and scratch
+*.log
+scratch/
+.system_generated/
+
+# Editor and IDE metadata
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
