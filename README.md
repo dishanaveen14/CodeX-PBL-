@@ -118,32 +118,86 @@ To build and run the complete graphical application, install:
   sudo dnf install gcc make gtk3-devel pkgconfig
   ```
 
-- **Windows (MSYS2 UCRT64 / MinGW):**
-  ```bash
-  pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gtk3 mingw-w64-ucrt-x86_64-pkg-config make
-  ```
+- **Windows (MSYS2 UCRT64):**
+  1. Open the **MSYS2 UCRT64** terminal (e.g. `ucrt64.exe` or "MSYS2 UCRT64" from Start Menu).  
+     *Ensure the prompt displays `UCRT64` (e.g. `DESKTOP-XXXXX UCRT64 ~`). Do not use `MSYS2 MSYS` or `CLANG64`.*
+  2. Navigate to your project directory:
+     ```bash
+     cd /c/Users/<YourUsername>/Desktop/CodeX-PBL-
+     ```
+  3. Update package database and core packages:
+     ```bash
+     pacman -Syu
+     ```
+  4. Install the required MinGW-w64 UCRT64 toolchain, GTK 3, pkg-config, and make:
+     ```bash
+     pacman -S --needed \
+       mingw-w64-ucrt-x86_64-gcc \
+       mingw-w64-ucrt-x86_64-gtk3 \
+       mingw-w64-ucrt-x86_64-pkg-config \
+       mingw-w64-ucrt-x86_64-make
+     ```
+
+### Verifying Environment and Dependencies
+
+Run the following commands in the **MSYS2 UCRT64** terminal to confirm the tools and libraries are properly detected:
+
+1. **Verify GCC Compiler:**
+   ```bash
+   gcc --version
+   which gcc
+   ```
+   *Expected output: GCC version 13+ or 14+ located in `/ucrt64/bin/gcc`.*
+
+2. **Verify GTK 3 & pkg-config:**
+   ```bash
+   pkg-config --modversion gtk+-3.0
+   pkg-config --cflags --libs gtk+-3.0
+   ```
+   *Expected output: GTK 3.24.x version string and corresponding include/library flags.*
+
+3. **Verify Make Tool:**
+   ```bash
+   make --version
+   # or mingw32-make --version
+   ```
 
 ---
 
 ## 6. Compilation and Execution
 
+Run all commands from the project root inside the **MSYS2 UCRT64** terminal (or standard Linux shell):
+
 ### Build the Full GUI Application
 ```bash
 make
 ```
+*(Alternatively, `mingw32-make` is also supported).*
 
 ### Run the Application
 ```bash
 make run
 ```
+*Builds the binary if not already built, then executes `bin/page_simulator.exe` and displays the GUI window.*
 
 ### Run All Test Suites
-The unit and integration test suites can be compiled and executed directly:
+Compiles and executes all unit and integration test suites:
 ```bash
 make test
 ```
 
+### Run Individual Test Suites
+Each test suite can also be compiled and executed independently:
+```bash
+make test-fifo          # Person 1: FIFO unit tests
+make test-lru           # Person 1: LRU unit tests
+make test-optimal       # Person 2: Optimal unit tests
+make test-simulation    # Person 2: Simulation engine & statistics tests
+make test-integration   # Person 4: Full pipeline integration tests
+```
+
 ### Clean Build Artifacts
+Removes all generated object files, executables, and temporary build folders:
 ```bash
 make clean
 ```

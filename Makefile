@@ -2,17 +2,27 @@
 # Project: Page Replacement Algorithm Simulator
 # Integration Owner: Person 4
 
-CC ?= gcc
+# Compiler and Flags
+ifeq ($(origin CC),default)
+    CC = gcc
+endif
 CFLAGS ?= -Wall -Wextra -Wpedantic -std=c11 -O2
 INCLUDES = -Iinclude -Isrc
 
+# Executable extension (.exe on Windows)
+ifeq ($(OS),Windows_NT)
+    EXE ?= .exe
+else
+    EXE ?=
+endif
+
 # Check for pkg-config and GTK+ 3.0
-PKG_CONFIG := $(shell which pkg-config 2>/dev/null)
-GTK_AVAILABLE := $(shell pkg-config --exists gtk+-3.0 2>/dev/null && echo yes || echo no)
+PKG_CONFIG ?= pkg-config
+GTK_AVAILABLE := $(shell $(PKG_CONFIG) --exists gtk+-3.0 2>/dev/null && echo yes || echo no)
 
 ifeq ($(GTK_AVAILABLE),yes)
-    GTK_CFLAGS := $(shell pkg-config --cflags gtk+-3.0)
-    GTK_LIBS   := $(shell pkg-config --libs gtk+-3.0)
+    GTK_CFLAGS := $(shell $(PKG_CONFIG) --cflags gtk+-3.0)
+    GTK_LIBS   := $(shell $(PKG_CONFIG) --libs gtk+-3.0)
 else
     GTK_CFLAGS := 
     GTK_LIBS   := 
@@ -26,7 +36,7 @@ BUILD_DIR = build
 BIN_DIR   = bin
 
 # Target executable
-TARGET = $(BIN_DIR)/page_simulator
+TARGET = $(BIN_DIR)/page_simulator$(EXE)
 
 # Source files for core and utilities (non-GUI)
 CORE_SRCS = $(SRC_DIR)/algorithms/fifo.c \
@@ -47,13 +57,19 @@ APP_SRCS  = $(CORE_SRCS) $(GUI_SRCS)
 APP_OBJS  = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(APP_SRCS))
 
 # Test executables
-TEST_BINS = $(BIN_DIR)/test_fifo \
-            $(BIN_DIR)/test_lru \
-            $(BIN_DIR)/test_optimal \
-            $(BIN_DIR)/test_simulation \
-            $(BIN_DIR)/test_integration
+TEST_FIFO        = $(BIN_DIR)/test_fifo$(EXE)
+TEST_LRU         = $(BIN_DIR)/test_lru$(EXE)
+TEST_OPTIMAL     = $(BIN_DIR)/test_optimal$(EXE)
+TEST_SIMULATION  = $(BIN_DIR)/test_simulation$(EXE)
+TEST_INTEGRATION = $(BIN_DIR)/test_integration$(EXE)
 
-.PHONY: all clean run test check-gtk
+TEST_BINS = $(TEST_FIFO) \
+            $(TEST_LRU) \
+            $(TEST_OPTIMAL) \
+            $(TEST_SIMULATION) \
+            $(TEST_INTEGRATION)
+
+.PHONY: all clean run test check-gtk test-fifo test-lru test-optimal test-simulation test-integration
 
 all: check-gtk $(TARGET)
 
@@ -64,7 +80,7 @@ ifeq ($(GTK_AVAILABLE),no)
 	@echo "To compile the full graphical simulator, install GTK+ 3 development libraries:"
 	@echo "  - On Debian/Ubuntu: sudo apt-get install libgtk-3-dev pkg-config"
 	@echo "  - On Fedora:        sudo dnf install gtk3-devel pkgconfig"
-	@echo "  - On MSYS2/MinGW:   pacman -S mingw-w64-ucrt-x86_64-gtk3 pkg-config"
+	@echo "  - On MSYS2 UCRT64:  pacman -S --needed mingw-w64-ucrt-x86_64-gtk3 mingw-w64-ucrt-x86_64-pkg-config"
 	@echo "You can still run independent core/unit tests using: make test"
 	@echo "=========================================================================="
 	@exit 1
@@ -100,26 +116,41 @@ test: $(TEST_BINS)
 	@echo "=========================================="
 	@echo "Running all test suites..."
 	@echo "=========================================="
-	@./$(BIN_DIR)/test_fifo
-	@./$(BIN_DIR)/test_lru
-	@./$(BIN_DIR)/test_optimal
-	@./$(BIN_DIR)/test_simulation
-	@./$(BIN_DIR)/test_integration
+	@./$(TEST_FIFO)
+	@./$(TEST_LRU)
+	@./$(TEST_OPTIMAL)
+	@./$(TEST_SIMULATION)
+	@./$(TEST_INTEGRATION)
 	@echo "=========================================="
 	@echo "All tests passed successfully!"
 	@echo "=========================================="
 
-$(BIN_DIR)/test_fifo: $(TEST_DIR)/test_fifo.c $(SRC_DIR)/algorithms/fifo.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
+test-fifo: $(TEST_FIFO)
+	@./$(TEST_FIFO)
+
+test-lru: $(TEST_LRU)
+	@./$(TEST_LRU)
+
+test-optimal: $(TEST_OPTIMAL)
+	@./$(TEST_OPTIMAL)
+
+test-simulation: $(TEST_SIMULATION)
+	@./$(TEST_SIMULATION)
+
+test-integration: $(TEST_INTEGRATION)
+	@./$(TEST_INTEGRATION)
+
+$(TEST_FIFO): $(TEST_DIR)/test_fifo.c $(SRC_DIR)/algorithms/fifo.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-$(BIN_DIR)/test_lru: $(TEST_DIR)/test_lru.c $(SRC_DIR)/algorithms/lru.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
+$(TEST_LRU): $(TEST_DIR)/test_lru.c $(SRC_DIR)/algorithms/lru.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-$(BIN_DIR)/test_optimal: $(TEST_DIR)/test_optimal.c $(SRC_DIR)/algorithms/optimal.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
+$(TEST_OPTIMAL): $(TEST_DIR)/test_optimal.c $(SRC_DIR)/algorithms/optimal.c $(SRC_DIR)/core/statistics.c $(SRC_DIR)/utils/memory.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-$(BIN_DIR)/test_simulation: $(TEST_DIR)/test_simulation.c $(CORE_SRCS) | $(BIN_DIR)
+$(TEST_SIMULATION): $(TEST_DIR)/test_simulation.c $(CORE_SRCS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@ -lm
 
-$(BIN_DIR)/test_integration: $(TEST_DIR)/test_integration.c $(CORE_SRCS) $(SRC_DIR)/gui/input_validation.c | $(BIN_DIR)
+$(TEST_INTEGRATION): $(TEST_DIR)/test_integration.c $(CORE_SRCS) $(SRC_DIR)/gui/input_validation.c | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@ -lm
