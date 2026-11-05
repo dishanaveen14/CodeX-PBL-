@@ -11,6 +11,7 @@
 #include <time.h>
 #include <errno.h>
 #include "common.h"
+#include "gui.h"
 
 #define LINE_LEN 128
 
@@ -205,20 +206,26 @@ static void print_menu(int n)
     printf(" 8. Run Priority (preemptive)\n");
     printf(" 9. Run Round Robin\n");
     printf("10. Run ALL algorithms and compare\n");
+    printf("11. Launch Graphical User Interface (GUI)\n");
     printf(" 0. Exit\n");
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     Process procs[MAX_PROC];
     int n = 0;
     int choice;
 
+    if (argc > 1 && (strcmp(argv[1], "--gui") == 0 || strcmp(argv[1], "-g") == 0)) {
+        launch_gui(procs, n);
+        return 0;
+    }
+
     srand((unsigned)time(NULL));
 
     for (;;) {
         print_menu(n);
-        if (!read_int("Choose an option: ", 0, 10, &choice))
+        if (!read_int("Choose an option: ", 0, 11, &choice))
             break;                                   /* EOF: leave quietly */
 
         switch (choice) {
@@ -233,6 +240,7 @@ int main(void)
         case 8:  run_and_show(A_PRIO_P, procs, n);               break;
         case 9:  run_and_show(A_RR, procs, n);                   break;
         case 10: run_all(procs, n);                              break;
+        case 11: launch_gui(procs, n);                           break;
         }
     }
     return 0;
