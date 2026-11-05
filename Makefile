@@ -16,7 +16,7 @@ BUILD   := build
 # Detect OS
 ifeq ($(OS),Windows_NT)
     TARGET  := ipc_project.exe
-    LDFLAGS := -pthread -lws2_32 -lgdi32 -lcomctl32
+    LDFLAGS := -static -lws2_32 -lgdi32 -lcomctl32
     RM      := del /Q /F
     MKDIR   := if not exist $(BUILD) mkdir $(BUILD)
 else

@@ -1,6 +1,6 @@
 /**
  * @file gui.c
- * @brief Graphical User Interface in C with Inputs, Process Descriptions, and Vertical Telemetry Log.
+ * @brief Graphical User Interface in C with User Inputs, Process Descriptions, and Clean Vertical Log.
  *
  * Owned by: Student 4 (Integration and Main Application)
  * Course: Operating Systems - POSIX IPC Project
@@ -35,9 +35,9 @@
 
 #define ID_EDIT_INPUT1      201
 #define ID_EDIT_INPUT2      202
-#define ID_EDIT_OUTPUT      203
-#define ID_STATUS_LABEL     204
-#define ID_EDIT_DESC        205
+#define ID_EDIT_DESC        203
+#define ID_EDIT_OUTPUT      204
+#define ID_STATUS_LABEL     205
 
 static HWND g_hwndInput1 = NULL;
 static HWND g_hwndInput2 = NULL;
@@ -45,58 +45,46 @@ static HWND g_hwndOutput = NULL;
 static HWND g_hwndStatus = NULL;
 static HWND g_hwndDesc   = NULL;
 
-/* Process Descriptions for each IPC mechanism */
+/* Concise Process Descriptions */
 static const char *DESC_DEFAULT =
-    "[IPC ARCHITECTURE OVERVIEW]\r\n"
-    "• IPC enables isolated processes with separate address spaces to exchange data and synchronize.\r\n"
-    "• Select any mechanism button above to view its process roles, IPC channel, and telemetry stream.";
+    "• Architecture : Isolated processes communicating across virtual address space boundaries.\r\n"
+    "• Instructions : Enter parameters above (or keep defaults) and click any mechanism button.\r\n"
+    "• Telemetry    : Step-by-step execution logs stream cleanly into the vertical log window below.";
 
 static const char *DESC_PIPES =
-    "[1. POSIX ANONYMOUS PIPES - PROCESS ROLES & DATA FLOW]\r\n"
-    "• Process A (Parent Process): Spawns child with fork(); closes write-end fd[1]; reads result from fd[0]; computes sum.\r\n"
-    "• Process B (Child Process): Closes read-end fd[0]; writes integer payload into fd[1]; exits cleanly.\r\n"
-    "• IPC Channel: Unidirectional kernel ring-buffer (pipe) managed directly by the OS kernel.\r\n"
-    "• Synchronization: Automatic OS kernel blocking (read blocks when empty; write blocks when full).";
+    "• Process A (Parent) : Creates pipe descriptors (fd[0], fd[1]), waits and reads sum from child.\r\n"
+    "• Process B (Child)  : Writes payload into pipe write-end fd[1], exits cleanly.\r\n"
+    "• IPC Channel        : Unidirectional Linux kernel FIFO byte-stream pipe ring-buffer.";
 
 static const char *DESC_MQ =
-    "[2. POSIX MESSAGE QUEUES - PROCESS ROLES & DATA FLOW]\r\n"
-    "• Process A (Sender Process): Opens /posix_ipc_prio_queue; packs message & priority level (1-10); calls mq_send().\r\n"
-    "• Process B (Receiver Process): Listens on queue descriptor; calls mq_receive(); retrieves highest priority first.\r\n"
-    "• IPC Channel: POSIX kernel message queue maintaining prioritized FIFO ordering in kernel space.\r\n"
-    "• Synchronization: Non-blocking or blocking message retrieval with strict priority guarantees.";
+    "• Process A (Sender)   : Opens queue /posix_ipc_prio_queue, packs message + priority, calls mq_send().\r\n"
+    "• Process B (Receiver) : Calls mq_receive(), retrieves highest priority message first.\r\n"
+    "• IPC Channel          : POSIX kernel message queue with strict priority ordering.";
 
 static const char *DESC_SOCKETS =
-    "[3. POSIX STREAM SOCKETS - PROCESS ROLES & DATA FLOW]\r\n"
-    "• Process A (TCP Server): Creates AF_INET socket; binds to 127.0.0.1:9099; listens & accepts connection; returns ACK.\r\n"
-    "• Process B (TCP Client): Connects to server socket; sends query string over stream; receives and validates response.\r\n"
-    "• IPC Channel: Loopback stream socket (SOCK_STREAM) providing full-duplex, reliable byte-stream protocol.\r\n"
-    "• Synchronization: OS network stack handles 3-way handshake, packet buffering, flow control, and teardown.";
+    "• Process A (TCP Server) : Binds 127.0.0.1:9099, listens, accepts connection, replies with ACK.\r\n"
+    "• Process B (TCP Client) : Connects to server, transmits query stream over TCP, receives reply.\r\n"
+    "• IPC Channel            : Full-duplex loopback stream socket (AF_INET / SOCK_STREAM).";
 
 static const char *DESC_SHM =
-    "[4. POSIX SHARED MEMORY - PROCESS ROLES & DATA FLOW]\r\n"
-    "• Process A (Writer Process): Creates shm object with shm_open(); resizes with ftruncate(); maps memory via mmap(); writes data.\r\n"
-    "• Process B (Reader Process): Opens existing shm object; maps via mmap(); reads directly from shared physical RAM.\r\n"
-    "• IPC Channel: Shared physical RAM pages mapped into the virtual address spaces of both processes.\r\n"
-    "• Synchronization: Fastest IPC (zero-copy); requires coordination primitives to ensure atomicity.";
+    "• Process A (Writer) : Creates shm object with shm_open(), maps via mmap(), writes directly to RAM.\r\n"
+    "• Process B (Reader) : Opens shm object with shm_open(), maps via mmap(), reads memory block.\r\n"
+    "• IPC Channel        : Shared physical RAM pages mapped into virtual address spaces (zero-copy).";
 
 static const char *DESC_SEM =
-    "[5. POSIX SEMAPHORES - PROCESS ROLES & DATA FLOW]\r\n"
-    "• Concurrent Threads / Processes: 4 worker threads performing 25,000 parallel increments on a shared counter.\r\n"
-    "• Synchronization Mechanism: Atomic sem_wait() (P operation) decrements lock; sem_post() (V operation) increments lock.\r\n"
-    "• Result & Safety: Demonstrates critical race conditions in unprotected code vs guaranteed accuracy with semaphores.\r\n"
-    "• IPC Channel: POSIX counting semaphore (sem_t) maintaining kernel-level atomic counters.";
+    "• Worker Threads (1..4) : Concurrent worker threads competing to increment a shared counter.\r\n"
+    "• Synchronization       : Atomic sem_wait() (lock) before critical section; sem_post() (unlock) on exit.\r\n"
+    "• Result & Safety       : Race condition detected without lock vs 100% accuracy with semaphore.";
 
 static const char *DESC_MUTEX =
-    "[6. POSIX MUTEX LOCKS - PROCESS ROLES & DATA FLOW]\r\n"
-    "• Concurrent Threads / Processes: 4 bank transaction threads performing parallel deposits and withdrawals.\r\n"
-    "• Synchronization Mechanism: pthread_mutex_lock() grants exclusive critical section access; pthread_mutex_unlock() releases.\r\n"
-    "• Result & Safety: Demonstrates balance corruption without locks vs perfect balance preservation with mutual exclusion.\r\n"
-    "• IPC Channel: POSIX mutual exclusion lock (pthread_mutex_t) enforced by CPU atomic instructions.";
+    "• Bank Threads (1..4) : Concurrent teller threads performing simultaneous deposits and withdrawals.\r\n"
+    "• Synchronization     : pthread_mutex_lock() ensures strict mutual exclusion on balance updates.\r\n"
+    "• Result & Safety     : Eliminates lost updates; account balance preserved exactly without corruption.";
 
 static const char *DESC_RUN_ALL =
-    "[FULL IPC TEST SUITE - PROCESS ROLES & DATA FLOW]\r\n"
-    "• Executes all 6 IPC mechanisms sequentially to compare throughput, latency, and synchronization guarantees.\r\n"
-    "• Telemetry log streams live into the vertical log window below and is persisted to sim.log for auditing.";
+    "• Test Suite  : Sequentially executes all 6 POSIX IPC mechanisms.\r\n"
+    "• Comparison  : Verifies throughput, latency, memory mapping, and synchronization locks.\r\n"
+    "• Audit Log   : All telemetry is captured and persisted to sim.log.";
 
 static void append_gui_output(const char *text)
 {
@@ -121,39 +109,92 @@ static void set_process_description(const char *desc)
     }
 }
 
+/* Strips timestamp prefixes ('2026-xx-xx xx:xx:xx.xxx [LEVEL] [TAG] ') to produce a clean, simple log */
+static void append_clean_log(const char *raw)
+{
+    if (!raw || !*raw) return;
+
+    char clean_buffer[16384];
+    size_t out_len = 0;
+    clean_buffer[0] = '\0';
+
+    const char *p = raw;
+    while (*p && out_len < sizeof(clean_buffer) - 64) {
+        const char *eol = strchr(p, '\n');
+        size_t line_len = eol ? (size_t)(eol - p) : strlen(p);
+
+        char line[1024];
+        if (line_len >= sizeof(line)) line_len = sizeof(line) - 1;
+        strncpy(line, p, line_len);
+        line[line_len] = '\0';
+        if (line_len > 0 && line[line_len - 1] == '\r') line[line_len - 1] = '\0';
+
+        /* Strip timestamp prefix */
+        char *content = line;
+        if (strlen(line) >= 30 && line[4] == '-' && line[7] == '-' && line[10] == ' ') {
+            char *b1 = strchr(line, ']');
+            if (b1) {
+                char *b2 = strchr(b1 + 1, ']');
+                if (b2 && *(b2 + 1) == ' ') {
+                    content = b2 + 2;
+                }
+            }
+        }
+
+        /* Standardize divider bars */
+        if (strncmp(content, "========================", 24) == 0) {
+            content = "------------------------------------------------------------";
+        }
+
+        if (strlen(content) > 0) {
+            int written = snprintf(clean_buffer + out_len, sizeof(clean_buffer) - out_len, "%s\r\n", content);
+            if (written > 0) out_len += (size_t)written;
+        }
+
+        if (!eol) break;
+        p = eol + 1;
+    }
+
+    append_gui_output(clean_buffer);
+}
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    static char output_buffer[16384];
+    static char raw_buffer[16384];
     char in1[256] = {0};
     char in2[256] = {0};
 
     switch (msg) {
     case WM_CREATE:
     {
+        HFONT hFontTitle = CreateFontA(16, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+                                       ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                       CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Segoe UI");
+
+        HFONT hFontUi = CreateFontA(14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                                    ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                    CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Segoe UI");
+
+        HFONT hFontBold = CreateFontA(14, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+                                      ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                      CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Segoe UI");
+
         HFONT hFontMono = CreateFontA(14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                                       ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                      DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Consolas");
+                                      CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Consolas");
 
-        HFONT hFontUi = CreateFontA(14, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
-                                    ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                    DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Segoe UI");
-
-        HFONT hFontDesc = CreateFontA(13, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-                                      ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                      DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Segoe UI");
-
-        /* Title */
+        /* Header Title */
         HWND hTitle = CreateWindowA("STATIC", "POSIX Inter-Process Communication Simulator (Team CodeX)",
                       WS_CHILD | WS_VISIBLE | SS_LEFT,
                       20, 10, 800, 22, hwnd, NULL, NULL, NULL);
-        SendMessageA(hTitle, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+        SendMessageA(hTitle, WM_SETFONT, (WPARAM)hFontTitle, TRUE);
 
-        /* Input Controls */
+        /* User Input Controls */
         HWND lbl1 = CreateWindowA("STATIC", "Parameter 1 (Num1 / Msg / Query / Payload):",
                                   WS_CHILD | WS_VISIBLE, 20, 36, 380, 18, hwnd, NULL, NULL, NULL);
         SendMessageA(lbl1, WM_SETFONT, (WPARAM)hFontUi, TRUE);
 
-        g_hwndInput1 = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "45",
+        g_hwndInput1 = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "15",
                                        WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
                                        20, 56, 380, 24, hwnd, (HMENU)ID_EDIT_INPUT1, NULL, NULL);
         SendMessageA(g_hwndInput1, WM_SETFONT, (WPARAM)hFontUi, TRUE);
@@ -162,116 +203,126 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                                   WS_CHILD | WS_VISIBLE, 430, 36, 380, 18, hwnd, NULL, NULL, NULL);
         SendMessageA(lbl2, WM_SETFONT, (WPARAM)hFontUi, TRUE);
 
-        g_hwndInput2 = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "55",
+        g_hwndInput2 = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "25",
                                        WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL,
                                        430, 56, 380, 24, hwnd, (HMENU)ID_EDIT_INPUT2, NULL, NULL);
         SendMessageA(g_hwndInput2, WM_SETFONT, (WPARAM)hFontUi, TRUE);
 
-        /* Action Buttons - Row 1 */
+        /* Mechanism Buttons */
+        int bx = 20, by = 90;
         HWND btn;
+
         btn = CreateWindowA("BUTTON", "1. Run Pipes", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                            20, 88, 120, 30, hwnd, (HMENU)ID_BTN_PIPES, NULL, NULL);
-        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                            bx, by, 120, 30, hwnd, (HMENU)ID_BTN_PIPES, NULL, NULL);
+        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontBold, TRUE);
+        bx += 130;
 
         btn = CreateWindowA("BUTTON", "2. Message Queue", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                            150, 88, 135, 30, hwnd, (HMENU)ID_BTN_MQ, NULL, NULL);
-        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                            bx, by, 140, 30, hwnd, (HMENU)ID_BTN_MQ, NULL, NULL);
+        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontBold, TRUE);
+        bx += 150;
 
         btn = CreateWindowA("BUTTON", "3. Sockets", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                            295, 88, 120, 30, hwnd, (HMENU)ID_BTN_SOCKETS, NULL, NULL);
-        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                            bx, by, 120, 30, hwnd, (HMENU)ID_BTN_SOCKETS, NULL, NULL);
+        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontBold, TRUE);
+        bx += 130;
 
         btn = CreateWindowA("BUTTON", "4. Shared Memory", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                            425, 88, 135, 30, hwnd, (HMENU)ID_BTN_SHM, NULL, NULL);
-        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                            bx, by, 135, 30, hwnd, (HMENU)ID_BTN_SHM, NULL, NULL);
+        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontBold, TRUE);
+        bx += 145;
 
         btn = CreateWindowA("BUTTON", "5. Semaphores", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                            570, 88, 125, 30, hwnd, (HMENU)ID_BTN_SEM, NULL, NULL);
-        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                            bx, by, 125, 30, hwnd, (HMENU)ID_BTN_SEM, NULL, NULL);
+        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontBold, TRUE);
+        bx += 135;
 
         btn = CreateWindowA("BUTTON", "6. Mutex", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                            705, 88, 115, 30, hwnd, (HMENU)ID_BTN_MUTEX, NULL, NULL);
-        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                            bx, by, 110, 30, hwnd, (HMENU)ID_BTN_MUTEX, NULL, NULL);
+        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontBold, TRUE);
 
-        /* Action Buttons - Row 2 */
+        /* Action Buttons Row 2 */
+        bx = 20; by = 126;
         btn = CreateWindowA("BUTTON", "⚡ Run All 6 Tests", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                            20, 124, 135, 28, hwnd, (HMENU)ID_BTN_RUN_ALL, NULL, NULL);
-        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                            bx, by, 140, 28, hwnd, (HMENU)ID_BTN_RUN_ALL, NULL, NULL);
+        SendMessageA(btn, WM_SETFONT, (WPARAM)hFontBold, TRUE);
+        bx += 150;
 
         btn = CreateWindowA("BUTTON", "Clear Log", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-                            165, 124, 95, 28, hwnd, (HMENU)ID_BTN_CLEAR, NULL, NULL);
+                            bx, by, 95, 28, hwnd, (HMENU)ID_BTN_CLEAR, NULL, NULL);
         SendMessageA(btn, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+        bx += 110;
 
         /* Status Label */
         g_hwndStatus = CreateWindowA("STATIC", "Status: Ready. Enter inputs above and click any mechanism button.",
                                      WS_CHILD | WS_VISIBLE | SS_LEFT,
-                                     275, 129, 540, 20, hwnd, (HMENU)ID_STATUS_LABEL, NULL, NULL);
+                                     bx, by + 4, 500, 20, hwnd, (HMENU)ID_STATUS_LABEL, NULL, NULL);
         SendMessageA(g_hwndStatus, WM_SETFONT, (WPARAM)hFontUi, TRUE);
 
-        /* Process Description Group Box */
-        HWND grpDesc = CreateWindowA("BUTTON", " Process Architecture & Roles Description ",
+        /* Process Architecture & Roles Box */
+        HWND grpDesc = CreateWindowA("BUTTON", " Process Architecture & Communication Roles ",
                                      WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-                                     20, 158, 825, 106, hwnd, NULL, NULL, NULL);
-        SendMessageA(grpDesc, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                                     20, 160, 830, 85, hwnd, NULL, NULL, NULL);
+        SendMessageA(grpDesc, WM_SETFONT, (WPARAM)hFontBold, TRUE);
 
-        /* Process Description Display (Word-wrapped text box) */
         g_hwndDesc = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", DESC_DEFAULT,
                                      WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_READONLY,
-                                     30, 178, 805, 76, hwnd, (HMENU)ID_EDIT_DESC, NULL, NULL);
-        SendMessageA(g_hwndDesc, WM_SETFONT, (WPARAM)hFontDesc, TRUE);
+                                     30, 180, 810, 56, hwnd, (HMENU)ID_EDIT_DESC, NULL, NULL);
+        SendMessageA(g_hwndDesc, WM_SETFONT, (WPARAM)hFontUi, TRUE);
 
-        /* Execution Log Group Box */
-        HWND grpLog = CreateWindowA("BUTTON", " System Execution Log & Telemetry (Vertical Scroll) ",
+        /* Execution Log Box - Strictly VERTICAL scroll (NO horizontal scroll) */
+        HWND grpLog = CreateWindowA("BUTTON", " Simple Execution Log (Vertical Scroll) ",
                                     WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-                                    20, 270, 825, 385, hwnd, NULL, NULL, NULL);
-        SendMessageA(grpLog, WM_SETFONT, (WPARAM)hFontUi, TRUE);
+                                    20, 252, 830, 410, hwnd, NULL, NULL, NULL);
+        SendMessageA(grpLog, WM_SETFONT, (WPARAM)hFontBold, TRUE);
 
-        /* Output View - Strictly VERTICAL scroll (NO WS_HSCROLL, NO ES_AUTOHSCROLL for word wrapping) */
         g_hwndOutput = CreateWindowExA(WS_EX_CLIENTEDGE, "EDIT", "",
                                        WS_CHILD | WS_VISIBLE | WS_VSCROLL |
                                        ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY,
-                                       30, 290, 805, 355, hwnd, (HMENU)ID_EDIT_OUTPUT, NULL, NULL);
+                                       30, 274, 810, 378, hwnd, (HMENU)ID_EDIT_OUTPUT, NULL, NULL);
         SendMessageA(g_hwndOutput, WM_SETFONT, (WPARAM)hFontMono, TRUE);
 
-        append_gui_output("===============================================================================\r\n");
-        append_gui_output("         POSIX IPC MECHANISMS GUI - C SYSTEM EXECUTION LOGGER                  \r\n");
-        append_gui_output("===============================================================================\r\n");
-        append_gui_output("Log streams vertically with automatic word-wrapping and persists to sim.log.\r\n\r\n");
+        append_gui_output("============================================================\r\n");
+        append_gui_output("          POSIX IPC MECHANISMS - SIMPLE C LOG VIEWER        \r\n");
+        append_gui_output("============================================================\r\n");
+        append_gui_output("• Pure C GUI running natively on Windows.\r\n");
+        append_gui_output("• Automatic word-wrapping enabled (no horizontal scrolling).\r\n");
+        append_gui_output("• Ready. Enter inputs above and click any mechanism button.\r\n\r\n");
         break;
     }
 
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
-        output_buffer[0] = '\0';
+        raw_buffer[0] = '\0';
         GetWindowTextA(g_hwndInput1, in1, sizeof(in1) - 1);
         GetWindowTextA(g_hwndInput2, in2, sizeof(in2) - 1);
 
         switch (wmId) {
         case ID_BTN_PIPES:
         {
-            long long n1 = atoll(strlen(in1) ? in1 : "25");
-            long long n2 = atoll(strlen(in2) ? in2 : "35");
+            long long n1 = atoll(strlen(in1) ? in1 : "15");
+            long long n2 = atoll(strlen(in2) ? in2 : "25");
             set_process_description(DESC_PIPES);
             update_gui_status("Status: Executing POSIX Pipes Demo...");
-            append_gui_output("\r\n--- [1. POSIX ANONYMOUS PIPES EXECUTION] ---\r\n");
-            append_gui_output("PROCESS ROLES: Parent Process (Reader) <--- [Kernel Pipe] <--- Child Process (Writer)\r\n");
-            execute_pipes_demo(n1, n2, "GUI_PIPE_OP", output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
+            append_gui_output(">>> [1. POSIX ANONYMOUS PIPES] <<<\r\n");
+            execute_pipes_demo(n1, n2, "PIPE_OP", raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+            append_gui_output("\r\n");
             update_gui_status("Status: POSIX Pipes Demo completed successfully.");
             break;
         }
 
         case ID_BTN_MQ:
         {
-            const char *msg = strlen(in1) ? in1 : "CRITICAL: Reactor Temperature High";
+            const char *msg = strlen(in1) ? in1 : "CRITICAL: Reactor Temperature Alert";
             int prio = atoi(strlen(in2) ? in2 : "10");
             set_process_description(DESC_MQ);
             update_gui_status("Status: Executing POSIX Message Queue Demo...");
-            append_gui_output("\r\n--- [2. POSIX MESSAGE QUEUES EXECUTION] ---\r\n");
-            append_gui_output("PROCESS ROLES: Sender Process ---> [Kernel Message Queue] ---> Receiver Process\r\n");
-            execute_message_queue_demo(msg, prio, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
+            append_gui_output(">>> [2. POSIX MESSAGE QUEUES] <<<\r\n");
+            execute_message_queue_demo(msg, prio, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+            append_gui_output("\r\n");
             update_gui_status("Status: POSIX Message Queue Demo completed successfully.");
             break;
         }
@@ -280,12 +331,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         {
             const char *query = strlen(in1) ? in1 : "QUERY_SYSTEM_LOAD_METRICS";
             set_process_description(DESC_SOCKETS);
-            update_gui_status("Status: Executing POSIX Stream Sockets Demo...");
-            append_gui_output("\r\n--- [3. POSIX STREAM SOCKETS EXECUTION] ---\r\n");
-            append_gui_output("PROCESS ROLES: TCP Client <===> [Loopback Stream Socket 127.0.0.1:9099] <===> TCP Server\r\n");
-            execute_sockets_demo(query, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
-            update_gui_status("Status: POSIX Sockets Demo completed successfully.");
+            update_gui_status("Status: Executing Stream Sockets Demo...");
+            append_gui_output(">>> [3. POSIX STREAM SOCKETS] <<<\r\n");
+            execute_sockets_demo(query, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+            append_gui_output("\r\n");
+            update_gui_status("Status: Stream Sockets Demo completed successfully.");
             break;
         }
 
@@ -295,10 +346,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             int tx = atoi(strlen(in2) ? in2 : "9001");
             set_process_description(DESC_SHM);
             update_gui_status("Status: Executing POSIX Shared Memory Demo...");
-            append_gui_output("\r\n--- [4. POSIX SHARED MEMORY EXECUTION] ---\r\n");
-            append_gui_output("PROCESS ROLES: Writer Process ===> [Direct Physical RAM Pages] <=== Reader Process\r\n");
-            execute_shared_memory_demo(data, tx, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
+            append_gui_output(">>> [4. POSIX SHARED MEMORY] <<<\r\n");
+            execute_shared_memory_demo(data, tx, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+            append_gui_output("\r\n");
             update_gui_status("Status: POSIX Shared Memory Demo completed successfully.");
             break;
         }
@@ -309,10 +360,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             int it = atoi(strlen(in2) ? in2 : "25000");
             set_process_description(DESC_SEM);
             update_gui_status("Status: Executing POSIX Semaphores Demo...");
-            append_gui_output("\r\n--- [5. POSIX SEMAPHORES EXECUTION] ---\r\n");
-            append_gui_output("PROCESS ROLES: Worker Threads (1..4) ===> [sem_wait / sem_post] ===> Shared Counter\r\n");
-            execute_semaphores_demo(w, it, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
+            append_gui_output(">>> [5. POSIX SEMAPHORES] <<<\r\n");
+            execute_semaphores_demo(w, it, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+            append_gui_output("\r\n");
             update_gui_status("Status: POSIX Semaphores Demo completed successfully.");
             break;
         }
@@ -323,10 +374,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             int ops = atoi(strlen(in2) ? in2 : "10000");
             set_process_description(DESC_MUTEX);
             update_gui_status("Status: Executing POSIX Mutex Locks Demo...");
-            append_gui_output("\r\n--- [6. POSIX MUTEX LOCKS EXECUTION] ---\r\n");
-            append_gui_output("PROCESS ROLES: Transaction Threads (1..4) ===> [pthread_mutex_lock] ===> Bank Balance\r\n");
-            execute_mutex_demo(b, 4, ops, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
+            append_gui_output(">>> [6. POSIX MUTEX LOCKS] <<<\r\n");
+            execute_mutex_demo(b, 4, ops, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+            append_gui_output("\r\n");
             update_gui_status("Status: POSIX Mutex Locks Demo completed successfully.");
             break;
         }
@@ -334,28 +385,36 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         case ID_BTN_RUN_ALL:
             set_process_description(DESC_RUN_ALL);
             update_gui_status("Status: Running all 6 POSIX IPC mechanisms sequentially...");
-            append_gui_output("\r\n===============================================================================\r\n");
-            append_gui_output("                      RUNNING FULL POSIX IPC TEST SUITE                        \r\n");
-            append_gui_output("===============================================================================\r\n");
-            execute_pipes_demo(20, 30, "SUITE", output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
-            execute_message_queue_demo("SUITE_ALERT", 10, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
-            execute_sockets_demo("SUITE_SOCKET_QUERY", output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
-            execute_shared_memory_demo("SUITE_RAM_DATA", 9001, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
-            execute_semaphores_demo(4, 25000, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
-            execute_mutex_demo(10000.0, 4, 10000, output_buffer, sizeof(output_buffer));
-            append_gui_output(output_buffer);
-            update_gui_status("Status: All 6 IPC mechanisms executed successfully!");
+            append_gui_output("============================================================\r\n");
+            append_gui_output("             RUNNING ALL 6 POSIX IPC MECHANISMS             \r\n");
+            append_gui_output("============================================================\r\n");
+
+            execute_pipes_demo(15, 25, "SUITE", raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+
+            execute_message_queue_demo("SUITE: Critical Alert", 10, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+
+            execute_sockets_demo("SUITE_QUERY", raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+
+            execute_shared_memory_demo("SUITE_RAM_DATA", 9001, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+
+            execute_semaphores_demo(4, 25000, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+
+            execute_mutex_demo(10000.0, 4, 10000, raw_buffer, sizeof(raw_buffer));
+            append_clean_log(raw_buffer);
+
+            append_gui_output("\r\n✔ ALL 6 IPC MECHANISMS EXECUTED SUCCESSFULLY!\r\n\r\n");
+            update_gui_status("Status: All 6 IPC mechanisms completed successfully!");
             break;
 
         case ID_BTN_CLEAR:
             SetWindowTextA(g_hwndOutput, "");
             set_process_description(DESC_DEFAULT);
-            update_gui_status("Status: Log view cleared.");
+            update_gui_status("Status: Log view cleared. Ready.");
             break;
         }
         break;
@@ -377,7 +436,7 @@ int launch_gui(int argc, char *argv[])
     (void)argv;
 
     HINSTANCE hInstance = GetModuleHandle(NULL);
-    const char CLASS_NAME[] = "PosixIpcGuiClass";
+    const char CLASS_NAME[] = "SimplePosixIpcGuiClass";
 
     WNDCLASSA wc = {0};
     wc.lpfnWndProc   = WndProc;
@@ -388,8 +447,8 @@ int launch_gui(int argc, char *argv[])
 
     RegisterClassA(&wc);
 
-    int win_w = 880;
-    int win_h = 710;
+    int win_w = 885;
+    int win_h = 715;
     int screen_w = GetSystemMetrics(SM_CXSCREEN);
     int screen_h = GetSystemMetrics(SM_CYSCREEN);
     int pos_x = (screen_w - win_w) / 2;
@@ -399,7 +458,7 @@ int launch_gui(int argc, char *argv[])
 
     HWND hwnd = CreateWindowExA(
         WS_EX_APPWINDOW, CLASS_NAME,
-        "POSIX IPC Simulator (Simple GUI in C) - Team CodeX",
+        "POSIX IPC Simulator (Simple C GUI) - Team CodeX",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         pos_x, pos_y, win_w, win_h,
         NULL, NULL, hInstance, NULL
@@ -425,53 +484,7 @@ int launch_gui(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
-    int choice = 0;
-
-    while (1) {
-        printf("\033[2J\033[H");
-        printf("\033[1;36m+-----------------------------------------------------------+\033[0m\n");
-        printf("\033[1;36m|          POSIX IPC MECHANISMS SIMULATOR - C GUI           |\033[0m\n");
-        printf("\033[1;36m+-----------------------------------------------------------+\033[0m\n");
-        printf("\033[1;33m  [1]\033[0m Pipes Demonstration          \033[1;32m(Student 1)\033[0m\n");
-        printf("\033[1;33m  [2]\033[0m Message Queues Demonstration \033[1;32m(Student 1)\033[0m\n");
-        printf("\033[1;33m  [3]\033[0m Sockets Demonstration        \033[1;32m(Student 2)\033[0m\n");
-        printf("\033[1;33m  [4]\033[0m Shared Memory Demonstration  \033[1;32m(Student 2)\033[0m\n");
-        printf("\033[1;33m  [5]\033[0m Semaphores Demonstration     \033[1;32m(Student 3)\033[0m\n");
-        printf("\033[1;33m  [6]\033[0m Mutex Locks Demonstration    \033[1;32m(Student 3)\033[0m\n");
-        printf("\033[1;33m  [7]\033[0m Run All 6 Demonstrations     \033[1;35m(Full Suite)\033[0m\n");
-        printf("\033[1;31m  [8]\033[0m Exit GUI\n");
-        printf("\033[1;36m+-----------------------------------------------------------+\033[0m\n");
-        printf("Select option (1-8): ");
-
-        if (scanf("%d", &choice) != 1) {
-            while (getchar() != '\n');
-            continue;
-        }
-
-        if (choice == 8) break;
-
-        switch (choice) {
-            case 1: run_pipes(); break;
-            case 2: run_message_queue(); break;
-            case 3: run_sockets(); break;
-            case 4: run_shared_memory(); break;
-            case 5: run_semaphores(); break;
-            case 6: run_mutex(); break;
-            case 7:
-                execute_pipes_demo(20, 30, "ALL", NULL, 0);
-                execute_message_queue_demo("ALERT", 10, NULL, 0);
-                execute_sockets_demo("QUERY", NULL, 0);
-                execute_shared_memory_demo("RAM_DATA", 9001, NULL, 0);
-                execute_semaphores_demo(4, 25000, NULL, 0);
-                execute_mutex_demo(10000.0, 4, 10000, NULL, 0);
-                break;
-            default: printf("Invalid choice.\n"); break;
-        }
-
-        printf("\nPress ENTER to return to menu...");
-        getchar();
-        getchar();
-    }
+    printf("\n[Simple C GUI: Native Win32 window is available on Windows]\n\n");
     return 0;
 }
 #endif
