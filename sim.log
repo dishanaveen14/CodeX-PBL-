@@ -1,8 +1,120 @@
-2026-11-03 12:00:37.255516 [INFO ] [CORE   ] Core startup
-2026-11-03 12:00:50.098803 [INFO ] [CORE   ] IPC addition: start (num1=2 num2=2)
-2026-11-03 12:00:50.099053 [INFO ] [CORE   ] IPC addition: parent PID=437 waiting for child PID=439
-2026-11-03 12:00:50.099133 [INFO ] [CORE   ] IPC addition: child PID=439 sending num2=2 via pipe
-2026-11-03 12:00:50.099175 [INFO ] [CORE   ] IPC addition: child PID=439 pipe send OK, exiting
-2026-11-03 12:00:50.099192 [INFO ] [CORE   ] IPC addition: sum = 2 + 2 = 4
-2026-11-03 12:00:50.099234 [INFO ] [CORE   ] IPC addition: child exited cleanly
-2026-11-03 12:00:50.099250 [INFO ] [CORE   ] IPC addition: complete
+2026-11-05 13:50:34.854 [INFO ] [CORE    ] >>> EXECUTING ALL 6 POSIX IPC MECHANISMS <<<
+2026-11-05 13:50:34.859 [INFO ] [PIPES   ] ========================================================
+2026-11-05 13:50:34.859 [INFO ] [PIPES   ] STARTING POSIX PIPES INTER-PROCESS COMMUNICATION DEMO
+2026-11-05 13:50:34.861 [INFO ] [PIPES   ] User Inputs: num1=15 (Parent), num2=25 (Child), tag='SUITE_PIPE'
+2026-11-05 13:50:34.861 [INFO ] [PIPES   ] Step 1: Invoking pipe() system call to allocate kernel FIFO ring buffer...
+2026-11-05 13:50:34.863 [INFO ] [PIPES   ] Kernel pipe created. Read FD: 3, Write FD: 4
+2026-11-05 13:50:34.864 [INFO ] [PIPES   ] Step 2: Spawning independent worker context for Child Process simulation...
+2026-11-05 13:50:34.865 [INFO ] [PIPES   ] Parent Context: Waiting for data on Read FD 3...
+2026-11-05 13:50:34.869 [INFO ] [PIPES   ] Child Context (Thread 30044): Initiating pipe write...
+2026-11-05 13:50:34.869 [INFO ] [PIPES   ] Child Context: Writing payload (num2=25, tag='SUITE_PIPE') into Write FD 4
+2026-11-05 13:50:34.871 [INFO ] [PIPES   ] Child Context: Write complete, closing Write FD and terminating.
+2026-11-05 13:50:34.871 [INFO ] [PIPES   ] Parent Context: Received 8 bytes. num2=25
+2026-11-05 13:50:34.873 [INFO ] [PIPES   ] Parent Context: IPC Addition Complete: 15 + 25 = 40
+2026-11-05 13:50:34.873 [INFO ] [PIPES   ] POSIX PIPES DEMONSTRATION COMPLETE: Final Sum = 40
+2026-11-05 13:50:34.874 [INFO ] [PIPES   ] ========================================================
+2026-11-05 13:50:34.874 [INFO ] [MQUEUE  ] ========================================================
+2026-11-05 13:50:34.875 [INFO ] [MQUEUE  ] STARTING POSIX MESSAGE QUEUE IPC DEMONSTRATION
+2026-11-05 13:50:34.876 [INFO ] [MQUEUE  ] User Inputs: Message='SUITE: Critical Reactor Temperature Alert', Priority=10
+2026-11-05 13:50:34.876 [INFO ] [MQUEUE  ] Step 1: Configuring POSIX queue name: /ipc_posix_demo_queue
+2026-11-05 13:50:34.877 [INFO ] [MQUEUE  ] Step 2: Initializing POSIX Message Queue (10 slots, 256 bytes/msg)...
+2026-11-05 13:50:34.877 [INFO ] [MQUEUE  ] Step 3: Enqueuing baseline messages with lower priorities...
+2026-11-05 13:50:34.878 [INFO ] [MQUEUE  ]     [Enqueued] Prio:  1 -> "Msg #1: Routine telemetry heartbeat"
+2026-11-05 13:50:34.878 [INFO ] [MQUEUE  ]     [Enqueued] Prio:  5 -> "Msg #2: Core process memory stats update"
+2026-11-05 13:50:34.879 [INFO ] [MQUEUE  ] Step 4: Enqueuing User message LAST with Priority 10...
+2026-11-05 13:50:34.879 [INFO ] [MQUEUE  ]     [Enqueued] Prio: 10 -> "SUITE: Critical Reactor Temperature Alert"
+2026-11-05 13:50:34.879 [INFO ] [MQUEUE  ] Step 5: Invoking mq_receive() to demonstrate priority-first dequeuing...
+2026-11-05 13:50:34.880 [INFO ] [MQUEUE  ]     [Dequeued #1] (Prio: 10, 41 bytes) -> "SUITE: Critical Reactor Temperature Alert"
+2026-11-05 13:50:34.881 [INFO ] [MQUEUE  ]     [Dequeued #2] (Prio:  5, 40 bytes) -> "Msg #2: Core process memory stats update"
+2026-11-05 13:50:34.881 [INFO ] [MQUEUE  ]     [Dequeued #3] (Prio:  1, 35 bytes) -> "Msg #1: Routine telemetry heartbeat"
+2026-11-05 13:50:34.881 [INFO ] [MQUEUE  ] Step 6: Queue deallocated cleanly.
+2026-11-05 13:50:34.882 [INFO ] [MQUEUE  ] NOTICE: Message with highest priority (10) was dequeued FIRST despite arriving last!
+2026-11-05 13:50:34.882 [INFO ] [MQUEUE  ] ========================================================
+2026-11-05 13:50:34.883 [INFO ] [SOCKETS ] ========================================================
+2026-11-05 13:50:34.885 [INFO ] [SOCKETS ] STARTING POSIX STREAM SOCKET IPC DEMONSTRATION
+2026-11-05 13:50:34.886 [INFO ] [SOCKETS ] User Inputs: Client Message='SUITE: Query Core Process Load'
+2026-11-05 13:50:34.886 [INFO ] [SOCKETS ] Step 1: Starting Socket Server on loopback address (127.0.0.1)...
+2026-11-05 13:50:34.901 [INFO ] [SOCKETS ] Server listening on 127.0.0.1:50403 (Socket bound and listening)
+2026-11-05 13:50:34.902 [INFO ] [SOCKETS ] Step 2: Client creating socket(AF_INET, SOCK_STREAM, 0)...
+2026-11-05 13:50:34.902 [INFO ] [SOCKETS ] Step 3: Client connecting to server at 127.0.0.1:50403 via connect()...
+2026-11-05 13:50:36.892 [INFO ] [SOCKETS ] POSIX Domain Stream Socket initialized.
+2026-11-05 13:50:36.894 [INFO ] [SOCKETS ] Step 2: Connecting Client endpoint to Server endpoint...
+2026-11-05 13:50:36.895 [INFO ] [SOCKETS ] Connection established. Client transmitting stream packet: "SUITE: Query Core Process Load"
+2026-11-05 13:50:36.896 [INFO ] [SOCKETS ] Server received payload and returned ACK: "ACK: Server processed 'SUITE: Query Core Process Load'"
+2026-11-05 13:50:36.897 [INFO ] [SOCKETS ] Step 6: Socket connection closed and file descriptors released.
+2026-11-05 13:50:36.897 [INFO ] [SOCKETS ] POSIX STREAM SOCKET DEMONSTRATION COMPLETE.
+2026-11-05 13:50:36.898 [INFO ] [SOCKETS ] ========================================================
+2026-11-05 13:50:36.899 [INFO ] [SHM     ] ========================================================
+2026-11-05 13:50:36.899 [INFO ] [SHM     ] STARTING POSIX SHARED MEMORY IPC DEMONSTRATION
+2026-11-05 13:50:36.900 [INFO ] [SHM     ] User Inputs: Data='SUITE: Shared Frame Telemetry Block #1024', TxID=9001
+2026-11-05 13:50:36.901 [INFO ] [SHM     ] Step 1: Creating POSIX shared memory object: /ipc_posix_demo_shm
+2026-11-05 13:50:36.903 [INFO ] [SHM     ] Step 2: Allocating shared memory block (304 bytes)...
+2026-11-05 13:50:36.904 [INFO ] [SHM     ] Shared segment mapped at virtual address 000001B952590000
+2026-11-05 13:50:36.906 [INFO ] [SHM     ] Step 3: Writer process populating shared memory structure directly...
+2026-11-05 13:50:36.906 [INFO ] [SHM     ]     [Written to RAM] TxID: 9001 | Author: "Process #1 (Core Engine)"
+2026-11-05 13:50:36.907 [INFO ] [SHM     ]     [Written to RAM] Data: "SUITE: Shared Frame Telemetry Block #1024"
+2026-11-05 13:50:36.908 [INFO ] [SHM     ] Step 4: Reader process reading directly from mapped memory space...
+2026-11-05 13:50:36.908 [INFO ] [SHM     ]     [Read Back] TxID: 9001 | Status: READY | Data: "SUITE: Shared Frame Telemetry Block #1024"
+2026-11-05 13:50:36.909 [INFO ] [SHM     ] Step 5: Memory unmapped and segment released.
+2026-11-05 13:50:36.910 [INFO ] [SHM     ] ADVANTAGE: Zero-copy inter-process memory sharing achieved!
+2026-11-05 13:50:36.911 [INFO ] [SHM     ] ========================================================
+2026-11-05 13:50:36.911 [INFO ] [SEM     ] ========================================================
+2026-11-05 13:50:36.913 [INFO ] [SEM     ] STARTING POSIX SEMAPHORES SYNCHRONIZATION DEMO
+2026-11-05 13:50:36.914 [INFO ] [SEM     ] User Inputs: Workers=4, Iterations/worker=25000 (Target Sum=100000)
+2026-11-05 13:50:36.916 [INFO ] [SEM     ] Step 1: Running Experiment 1 (Unsynchronized Access)...
+2026-11-05 13:50:36.917 [INFO ] [SEM     ] Spawning 4 threads competing for shared counter WITHOUT semaphore...
+2026-11-05 13:50:36.920 [INFO ] [SEM     ] Unsafe Counter=100000 / 100000 (High thread scheduler coincidence)
+2026-11-05 13:50:36.921 [INFO ] [SEM     ] Step 2: Running Experiment 2 (POSIX Semaphore Protected)...
+2026-11-05 13:50:36.924 [INFO ] [SEM     ] Initialized binary semaphore via sem_init(val=1).
+2026-11-05 13:50:36.925 [INFO ] [SEM     ] Spawning 4 threads using sem_wait() and sem_post()...
+2026-11-05 13:50:37.441 [INFO ] [SEM     ] Step 3: All 4 worker threads completed. Destroying semaphore (sem_destroy).
+2026-11-05 13:50:37.444 [INFO ] [SEM     ] Synchronized Counter = 100000 / 100000 (100% ACCURATE, 0 Lost Updates)
+2026-11-05 13:50:37.445 [INFO ] [SEM     ] POSIX SEMAPHORE DEMONSTRATION COMPLETE: Mutual exclusion guaranteed.
+2026-11-05 13:50:37.445 [INFO ] [SEM     ] ========================================================
+2026-11-05 13:50:37.445 [INFO ] [MUTEX   ] ========================================================
+2026-11-05 13:50:37.445 [INFO ] [MUTEX   ] STARTING POSIX MUTEX LOCKS DEMONSTRATION
+2026-11-05 13:50:37.445 [INFO ] [MUTEX   ] User Inputs: Initial Balance=$10000.00, Teller Threads=4, Ops/thread=10000
+2026-11-05 13:50:37.446 [INFO ] [MUTEX   ] Scenario: Each teller performs 10000 matched (+$50 / -$50) transactions. Expected Final: $10000.00
+2026-11-05 13:50:37.446 [INFO ] [MUTEX   ] Step 1: Running Experiment 1 (WITHOUT Mutex Protection)...
+2026-11-05 13:50:37.447 [INFO ] [MUTEX   ] Spawning 4 teller threads updating balance concurrently...
+2026-11-05 13:50:37.449 [WARN ] [MUTEX   ] RACE CONDITION DETECTED! Final Balance: $10050.00 (Discrepancy: +50.00)
+2026-11-05 13:50:37.449 [INFO ] [MUTEX   ] Step 2: Running Experiment 2 (WITH POSIX Mutex Protection)...
+2026-11-05 13:50:37.450 [INFO ] [MUTEX   ] Calling pthread_mutex_init() to initialize fast mutex lock...
+2026-11-05 13:50:37.450 [INFO ] [MUTEX   ] Spawning 4 teller threads using pthread_mutex_lock() / unlock()...
+2026-11-05 13:50:37.455 [INFO ] [MUTEX   ] pthread_mutex_trylock() verified non-blocking acquisition: SUCCESS
+2026-11-05 13:50:37.456 [INFO ] [MUTEX   ] Destroyed mutex via pthread_mutex_destroy().
+2026-11-05 13:50:37.456 [INFO ] [MUTEX   ] Final Synchronized Balance: $10000.00 (Discrepancy: $0.00 - 100% EXACT)
+2026-11-05 13:50:37.456 [INFO ] [MUTEX   ] POSIX MUTEX LOCK DEMONSTRATION COMPLETE: Mutual exclusion preserved.
+2026-11-05 13:50:37.456 [INFO ] [MUTEX   ] ========================================================
+2026-11-05 13:50:37.456 [INFO ] [CORE    ] [+] All 6 IPC demonstrations completed successfully.
+2026-11-05 13:57:58.104 [INFO ] [PIPES   ] ========================================================
+2026-11-05 13:57:58.104 [INFO ] [PIPES   ] STARTING POSIX PIPES INTER-PROCESS COMMUNICATION DEMO
+2026-11-05 13:57:58.104 [INFO ] [PIPES   ] User Inputs: num1=45 (Parent), num2=55 (Child), tag='GUI_PIPE_OP'
+2026-11-05 13:57:58.104 [INFO ] [PIPES   ] Step 1: Invoking pipe() system call to allocate kernel FIFO ring buffer...
+2026-11-05 13:57:58.104 [INFO ] [PIPES   ] Kernel pipe created. Read FD: 3, Write FD: 4
+2026-11-05 13:57:58.104 [INFO ] [PIPES   ] Step 2: Spawning independent worker context for Child Process simulation...
+2026-11-05 13:57:58.104 [INFO ] [PIPES   ] Parent Context: Waiting for data on Read FD 3...
+2026-11-05 13:57:58.114 [INFO ] [PIPES   ] Child Context (Thread 19756): Initiating pipe write...
+2026-11-05 13:57:58.116 [INFO ] [PIPES   ] Child Context: Writing payload (num2=55, tag='GUI_PIPE_OP') into Write FD 4
+2026-11-05 13:57:58.116 [INFO ] [PIPES   ] Child Context: Write complete, closing Write FD and terminating.
+2026-11-05 13:57:58.116 [INFO ] [PIPES   ] Parent Context: Received 8 bytes. num2=55
+2026-11-05 13:57:58.116 [INFO ] [PIPES   ] Parent Context: IPC Addition Complete: 45 + 55 = 100
+2026-11-05 13:57:58.116 [INFO ] [PIPES   ] POSIX PIPES DEMONSTRATION COMPLETE: Final Sum = 100
+2026-11-05 13:57:58.122 [INFO ] [PIPES   ] ========================================================
+2026-11-05 13:57:59.618 [INFO ] [MQUEUE  ] ========================================================
+2026-11-05 13:57:59.620 [INFO ] [MQUEUE  ] STARTING POSIX MESSAGE QUEUE IPC DEMONSTRATION
+2026-11-05 13:57:59.620 [INFO ] [MQUEUE  ] User Inputs: Message='45', Priority=10
+2026-11-05 13:57:59.620 [INFO ] [MQUEUE  ] Step 1: Configuring POSIX queue name: /ipc_posix_demo_queue
+2026-11-05 13:57:59.620 [INFO ] [MQUEUE  ] Step 2: Initializing POSIX Message Queue (10 slots, 256 bytes/msg)...
+2026-11-05 13:57:59.620 [INFO ] [MQUEUE  ] Step 3: Enqueuing baseline messages with lower priorities...
+2026-11-05 13:57:59.620 [INFO ] [MQUEUE  ]     [Enqueued] Prio:  1 -> "Msg #1: Routine telemetry heartbeat"
+2026-11-05 13:57:59.620 [INFO ] [MQUEUE  ]     [Enqueued] Prio:  5 -> "Msg #2: Core process memory stats update"
+2026-11-05 13:57:59.620 [INFO ] [MQUEUE  ] Step 4: Enqueuing User message LAST with Priority 10...
+2026-11-05 13:57:59.628 [INFO ] [MQUEUE  ]     [Enqueued] Prio: 10 -> "45"
+2026-11-05 13:57:59.628 [INFO ] [MQUEUE  ] Step 5: Invoking mq_receive() to demonstrate priority-first dequeuing...
+2026-11-05 13:57:59.628 [INFO ] [MQUEUE  ]     [Dequeued #1] (Prio: 10, 2 bytes) -> "45"
+2026-11-05 13:57:59.628 [INFO ] [MQUEUE  ]     [Dequeued #2] (Prio:  5, 40 bytes) -> "Msg #2: Core process memory stats update"
+2026-11-05 13:57:59.633 [INFO ] [MQUEUE  ]     [Dequeued #3] (Prio:  1, 35 bytes) -> "Msg #1: Routine telemetry heartbeat"
+2026-11-05 13:57:59.634 [INFO ] [MQUEUE  ] Step 6: Queue deallocated cleanly.
+2026-11-05 13:57:59.634 [INFO ] [MQUEUE  ] NOTICE: Message with highest priority (10) was dequeued FIRST despite arriving last!
+2026-11-05 13:57:59.636 [INFO ] [MQUEUE  ] ========================================================

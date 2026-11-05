@@ -1,102 +1,129 @@
-let isExecuting = false;
-let isInitialLogLoad = true;
+/**
+ * Client-side Controller for POSIX IPC Simulator.
+ * Synchronizes user inputs and streams execution logs vertically.
+ */
 
-async function apiCall(command) {
+let lastLogCount = 0;
+let isInitialLoad = true;
+
+async function runMech(mech, arg1Id, arg2Id) {
+    const statEl = document.getElementById(`stat-${mech}`);
+    if (statEl) {
+        statEl.textContent = 'Running...';
+        statEl.className = 'status-indicator running';
+    }
+
+    const val1 = arg1Id ? document.getElementById(arg1Id)?.value || '' : '';
+    const val2 = arg2Id ? document.getElementById(arg2Id)?.value || '' : '';
+
     try {
-        const res = await fetch('/api/command', {
+        const res = await fetch('/api/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command })
+            body: JSON.stringify({
+                mechanism: mech,
+                arg1: val1,
+                arg2: val2
+            })
         });
+
         const data = await res.json();
-        return data.response;
+        if (data.output) {
+            appendTerminalOutput(data.output);
+        }
+
+        if (statEl) {
+            statEl.textContent = 'Completed';
+            statEl.className = 'status-indicator success';
+            setTimeout(() => {
+                statEl.textContent = 'Ready';
+                statEl.className = 'status-indicator';
+            }, 3000);
+        }
     } catch (err) {
-        console.error(err);
-        return 'ERROR Server unreachable';
+        console.error('Request error:', err);
+        appendTerminalOutput(`[-] Failed to connect to server: ${err.message}`);
+        if (statEl) {
+            statEl.textContent = 'Error';
+            statEl.className = 'status-indicator error';
+        }
     }
+}
+
+async function runAllTests() {
+    appendTerminalOutput("\n========================================================");
+    appendTerminalOutput(">>> DISPATCHING ALL 6 IPC DEMONSTRATIONS SEQUENTIALLY <<<");
+    appendTerminalOutput("========================================================");
+    await runMech('ALL');
+}
+
+function appendTerminalOutput(text) {
+    const feed = document.getElementById('terminal-feed');
+    if (!feed) return;
+
+    const lines = text.split('\n');
+    lines.forEach(line => {
+        if (!line.trim()) return;
+        const div = document.createElement('div');
+        div.className = 'terminal-line';
+        if (line.includes('===') || line.includes('>>>')) div.classList.add('terminal-header');
+        else if (line.includes('[+]') || line.includes('SUCCESS') || line.includes('CORRECT') || line.includes('COMPLETE')) div.classList.add('terminal-success');
+        else if (line.includes('[-]') || line.includes('CORRUPTION') || line.includes('ERROR') || line.includes('RACE CONDITION')) div.classList.add('terminal-error');
+        else if (line.includes('[!]') || line.includes('WARN')) div.classList.add('terminal-warn');
+        div.textContent = line;
+        feed.appendChild(div);
+    });
+
+    feed.scrollTop = feed.scrollHeight;
 }
 
 async function clearLogs() {
     try {
         await fetch('/api/logs/clear', { method: 'POST' });
-        const feed = document.getElementById('log-feed');
-        feed.innerHTML = '';
+        const feed = document.getElementById('terminal-feed');
+        if (feed) feed.innerHTML = '<div class="terminal-line text-muted">[System] Log cleared. Ready for next IPC run.</div>';
+        lastLogCount = 0;
     } catch (err) {
-        console.error('Failed to clear logs:', err);
+        console.error(err);
     }
 }
 
-function showFeedback(elementId, msg, isError = false) {
-    const el = document.getElementById(elementId);
-    el.textContent = msg;
-    el.className = 'feedback ' + (isError ? 'error' : 'success');
-}
-
-async function updateLogs() {
+async function pollLogs() {
     try {
         const res = await fetch('/api/logs');
         const data = await res.json();
-        if (data.logs) {
-            const feed = document.getElementById('log-feed');
-            const wasAtBottom = feed.scrollTop >= (feed.scrollHeight - feed.clientHeight - 10);
-            
-            feed.innerHTML = data.logs.map(log => {
-                let cls = 'log-info';
-                if (log.includes('[WARN')) cls = 'log-warn';
-                if (log.includes('[ERROR')) cls = 'log-error';
-                return `<div class="log-entry ${cls}">${log}</div>`;
-            }).join('');
-            
-            if (wasAtBottom || isInitialLogLoad) {
+        const feed = document.getElementById('terminal-feed');
+
+        if (data.logs && data.logs.length > 0) {
+            document.getElementById('backend-status').textContent = 'C Engine: Active';
+            document.getElementById('backend-status').className = 'badge live-badge';
+
+            if (isInitialLoad) {
+                feed.innerHTML = '';
+                data.logs.forEach(line => {
+                    const div = document.createElement('div');
+                    div.className = 'terminal-line';
+                    if (line.includes('===') || line.includes('>>>')) div.classList.add('terminal-header');
+                    else if (line.includes('[+]') || line.includes('SUCCESS') || line.includes('CORRECT') || line.includes('COMPLETE')) div.classList.add('terminal-success');
+                    else if (line.includes('[-]') || line.includes('CORRUPTION') || line.includes('ERROR') || line.includes('RACE CONDITION')) div.classList.add('terminal-error');
+                    else if (line.includes('[!]') || line.includes('WARN')) div.classList.add('terminal-warn');
+                    div.textContent = line;
+                    feed.appendChild(div);
+                });
                 feed.scrollTop = feed.scrollHeight;
-                isInitialLogLoad = false;
+                isInitialLoad = false;
+                lastLogCount = data.logs.length;
             }
-            
-            document.getElementById('logger-status').textContent = 'Logger: Active';
-            document.getElementById('logger-status').className = 'badge ok';
-        } else {
-            document.getElementById('logger-status').textContent = 'Logger: Idle';
-            document.getElementById('logger-status').className = 'badge';
         }
-    } catch(err) {
-        document.getElementById('logger-status').textContent = 'Logger: Error';
-        document.getElementById('logger-status').className = 'badge err';
+    } catch (err) {
+        const status = document.getElementById('backend-status');
+        if (status) {
+            status.textContent = 'Backend: Standby';
+            status.className = 'badge';
+        }
     }
 }
 
-async function execIPC() {
-    if (isExecuting) return;
-    
-    const n1 = document.getElementById('ipc-num1').value;
-    const n2 = document.getElementById('ipc-num2').value;
-    
-    if (n1 === '' || n2 === '') {
-        showFeedback('ipc-feedback', 'Please enter both numbers.', true);
-        return;
-    }
-    
-    isExecuting = true;
-    document.getElementById('btn-add').disabled = true;
-    document.getElementById('btn-add').style.opacity = '0.5';
-    document.getElementById('ipc-status').textContent = 'Executing POSIX fork and pipe...';
-    showFeedback('ipc-feedback', '');
-    
-    const res = await apiCall(`IPC_ADD ${n1} ${n2}`);
-    
-    if (res.startsWith('ERROR')) {
-        showFeedback('ipc-feedback', res, true);
-        document.getElementById('ipc-status').textContent = 'Failed to execute IPC.';
-    } else {
-        const sum = res.split(' ')[1];
-        showFeedback('ipc-feedback', `Success! Computed Sum: ${sum}`);
-        document.getElementById('ipc-status').textContent = `Process 1 received ${n2} from Process 2 and computed: ${n1} + ${n2} = ${sum}`;
-    }
-    
-    isExecuting = false;
-    document.getElementById('btn-add').disabled = false;
-    document.getElementById('btn-add').style.opacity = '1';
-}
-
-// Initial pull and periodic refresh
-updateLogs();
-setInterval(updateLogs, 1000);
+// Initial pull on page load
+pollLogs();
+setInterval(pollLogs, 3000);

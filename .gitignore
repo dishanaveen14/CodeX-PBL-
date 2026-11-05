@@ -1,1 +1,21 @@
-/build/
+# ==============================================================================
+# .gitignore for POSIX IPC Project
+# ==============================================================================
+
+# Build artifacts & binaries
+build/
+bin/
+*.o
+*.exe
+ipc_project
+ipc_project.exe
+
+# Telemetry logs
+sim.log*
+*.log
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

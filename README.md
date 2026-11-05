@@ -1,282 +1,370 @@
-# PROJECT REPORT: WEEK 4 – MULTI-PROCESS SIMULATOR & IPC
-## Course: Operating Systems Laboratory / Project-Based Learning (PBL)
+# IPC Using POSIX Mechanisms
+
+## 1. Project Overview
+
+This project demonstrates six essential Inter-Process Communication (IPC) mechanisms using POSIX system calls in Linux (and Windows MinGW cross-platform support).
+
+Inter-Process Communication (IPC) allows independent processes to exchange data, synchronize execution, and coordinate tasks. This project implements modular C source components for each technique, integrated into a unified menu-driven application, a native C Graphical User Interface (GUI), and a Web-based interactive dashboard.
+
+### Implemented IPC Mechanisms
+1. **Pipes** (Anonymous unidirectional & bidirectional byte streams)
+2. **Message Queues** (Structured message exchange with priority scheduling)
+3. **Sockets** (Client-server stream communication over loopback TCP)
+4. **Shared Memory** (Zero-copy direct memory access mapped into RAM)
+5. **Semaphores** (Process and thread synchronization preventing race conditions)
+6. **Mutex Locks** (Mutual exclusion guarding shared critical sections)
+
+- **Programming Language:** C (C99/C11 Standard)
+- **Target Operating System:** Linux (Ubuntu recommended) / Windows MinGW / WSL
+- **Interface:** POSIX APIs (`unistd.h`, `mqueue.h`, `sys/socket.h`, `sys/mman.h`, `semaphore.h`, `pthread.h`)
+- **Compiler:** GCC (GNU Compiler Collection)
 
 ---
 
-## 1. Title Page
+## 2. Team Members and Responsibilities
 
-* **Project Title:** Multi-Process Simulator with Pipe-Based Inter-Process Communication (IPC)
-* **Milestone:** Week 4 – Multi-Process Architecture, Pipe IPC Implementation & System Integration
-* **Academic Domain:** Operating Systems, Concurrent Computing, Systems Programming in C
-* **Project Team:**
-  * **Team Leader (Integration & Synchronization):** Disha Naveen
-  * **Core Process Engineer:** Dhanush
-  * **UI Process Engineer:** Bathin
-  * **Logger Engineer:** Sohan
-* **Submission Date:** October 2026
-* **Academic Term:** Academic Year 2026–2027
-
----
-
-## Quick Start — Running the System
-
-For an in-depth walkthrough and IPC Addition walkthrough, see [DEMO_GUIDE.md](DEMO_GUIDE.md).
-
-### Prerequisites
-- **Linux or WSL2 on Windows** (required for POSIX `pipe()`, `fork()`, and message queues `mqueue`)
-- **GCC ≥ 7, make, librt** (`sudo apt install build-essential`)
-- **Python 3** (for the UI server)
-
-### 1-Step Launch (Recommended)
-```bash
-# On Linux / WSL:
-chmod +x run.sh
-./run.sh
-
-# On Windows (from PowerShell or CMD with WSL installed):
-wsl ./run.sh
-```
-This builds all C binaries, launches the asynchronous Logger daemon in the background, spins up the Core process, and starts the Web UI server at:
-👉 **`http://localhost:8080`**
-
-Press `Ctrl+C` in the terminal to automatically stop the UI server and gracefully shut down the Logger daemon.
-
-### Manual Step-by-Step Launch
-1. **Compile the binaries:**
-   ```bash
-   make all
-   ```
-2. **Start the Logger daemon:**
-   ```bash
-   ./build/logger &
-   ```
-3. **Start the Web UI & Core bridge:**
-   ```bash
-   python3 ui/server.py
-   ```
-4. **Graceful shutdown:**
-   After terminating the UI server with `Ctrl+C`, stop the Logger:
-   ```bash
-   ./build/tests/test_sender shutdown
-   ```
-
-### Running Test Suites
-```bash
-make test
-```
-
----
-
-## 2. Introduction
-
-In modern operating systems, process isolation is a fundamental architectural principle. Virtual memory management guarantees that each executing process possesses a private, protected address space. While this isolation prevents unauthorized memory modification and ensures fault containment, practical applications—such as simulation engines, databases, client-server applications, and system monitoring suites—require robust mechanisms to exchange information.
-
-The **Multi-Process Simulator** is an operating system simulation platform designed to simulate multi-process execution, dynamic task delegation, and deterministic inter-process data exchange. Rather than executing as a monolithic application or relying on multi-threaded shared memory, the system decomposes its duties into separate operating system processes using the `fork()` system call. Communication across these independent processes is conducted exclusively through **UNIX Pipes (`pipe()`)**. This report details the architectural design, implementation, communication flows, team allocations, verification methodology, and empirical observations of our Week 4 project milestone.
-
----
-
-## 3. Objectives
-
-The key objectives for the Week 4 milestone include:
-1. **Multi-Process Partitioning:** Partition the simulator into decoupled, autonomous processes: an interactive User Interface (UI) process, a central Simulation Core process, child worker processes, and an asynchronous system Logger daemon.
-2. **Exclusive Use of Pipe-Based IPC:** Implement inter-process data transfer exclusively via anonymous unidirectional UNIX pipes, avoiding shared memory, message queues, or network sockets.
-3. **Rigorous Lifecycle Management:** Implement POSIX process creation (`fork()`), process execution, state tracking, and cleanup (`waitpid()`) to prevent zombie processes and resource leaks.
-4. **Real-Time Observability & Monitoring:** Provide an interactive dashboard displaying process IDs (PIDs), states (READY, RUNNING, BLOCKED, TERMINATED), pipe transmission metrics, and calculation outputs.
-5. **Decoupled Telemetry Logging:** Stream system events, IPC transaction logs, and error records across a dedicated logger pipe to maintain an audit trail on disk (`sim_audit.log`) without stalling the core execution loop.
-6. **System Integration:** Establish binary wire protocols, handle edge cases such as broken pipes (`SIGPIPE`), prevent deadlocks, and achieve graceful system shutdown.
-
----
-
-## 4. Project Overview
-
-The Multi-Process Simulator models a distributed computing node in which work requests entered by an operator are parsed, scheduled, computed, and logged across distinct address spaces:
-
-| Attribute | Specification |
-|---|---|
-| **Project Name** | Multi-Process Simulator & IPC |
-| **Milestone** | Week 4 – Architecture, Pipe IPC & Integration |
-| **Language** | C (POSIX-compliant, C99/C11 standard) |
-| **IPC Mechanism** | UNIX Anonymous Pipes (`pipe()`, `read()`, `write()`) |
-| **Process Model** | Multi-Process Architecture (`fork()`, `exec()`, `waitpid()`) |
-| **Target Platform** | POSIX OS (Linux / Ubuntu / WSL / macOS) |
-
-#### Component Breakdown:
-* **UI Process (Bathin):** Interacts with the operator, dispatches task instructions into the command pipe, reads responses from the Core, and renders the live dashboard.
-* **Core Process (Dhanush):** Controls the simulation lifecycle, manages child worker execution, routes operands to workers, aggregates results, and feeds status to the UI and Logger.
-* **Logger Process (Sohan):** Consumes structured event records from the logger pipe, prepends timestamps, and persists logs to `sim_audit.log`.
-* **Team Leader / Integration (Disha Naveen):** Coordinates the overall startup sequence, manages pipe descriptor lifetimes, designs wire packet schemas, and handles error handling.
-
----
-
-## 5. Why This Matters
-
-1. **True Fault Containment:** In single-process or multi-threaded programs, a memory fault (e.g., `SIGSEGV`) terminates the entire application. In our multi-process design, if a worker encounters an error, the Core traps the termination status through `waitpid()`, logs the fault via the Logger, and continues running.
-2. **Kernel-Enforced Stream Synchronization:** Pipes rely on kernel-level ring buffers. Reading from an empty pipe automatically blocks the reader until data is available, providing synchronization without busy-waiting CPU loops.
-3. **Real-World Systems Engineering:** Decoupling user interaction (UI), computational processing (Core), and disk I/O (Logger) reflects industry-standard architectures, such as web browser process models and microkernel operating systems.
-
----
-
-## 6. System Architecture Diagram
-
-The complete architecture illustrates process boundaries, data communication directions, and the coordinating integration layer:
+The project responsibilities are distributed among four team members:
 
 ```text
-====================================================================================================
-                        MULTI-PROCESS SIMULATOR & IPC ARCHITECTURE
-====================================================================================================
++---------------------------------------------------------------------------------+
+|                                TEAM ALLOCATION                                  |
++---------------------------------------------------------------------------------+
+| Student 1 | Pipes & POSIX Message Queues     | pipes.c, message_queue.c         |
+| Student 2 | Stream Sockets & Shared Memory   | sockets.c, shared_memory.c       |
+| Student 3 | Semaphores & Mutex Locks         | semaphores.c, mutex.c            |
+| Student 4 | Integration, GUI & Main App      | main.c, gui.c, Makefile, README  |
++---------------------------------------------------------------------------------+
+```
 
-               +-------------------------------------------------------------+
-               |             TEAM LEADER / INTEGRATION LAYER                 |
-               |                                                             |
-               | • System Startup & Topology      • Pipe Lifecycle Management|
-               | • Protocol Serialization Contract • End-to-End Coordination  |
-               +-------------------------------------------------------------+
-                                      |
-                                      | Spawns, Connects & Coordinates
-                                      v
-               +-------------------------------------------------------------+
-               |                         UI PROCESS                          |
-               |                           Bathin                            |
-               |  • Interactive Dashboard          • Process Status Monitor  |
-               |  • Command Dispatcher             • Real-Time IPC Status    |
-               +-------------------------------------------------------------+
-                                      │
-                                      │ Pipe / IPC  [cmd_pipe: write(fd[1])]
-                                      ▼
-               +-------------------------------------------------------------+
-               |                        CORE PROCESS                         |
-               |                          Dhanush                            |
-               |  • Process Creation (fork)        • Workload Scheduling     |
-               |  • Process Lifecycle Management   • Pipe Multiplexing       |
-               |  • Simulation Engine Logic        • Signal & Error Handling |
-               +-------------------------------------------------------------+
-                               │                             │
-                     Pipe / IPC│                             │ Pipe / IPC
-        [task_pipe: write(fd[1])]                            │ [log_pipe: write(fd[1])]
-                               ▼                             ▼
-  +--------------------------------------------+  +------------------------------------+
-  |           CHILD / WORKER PROCESSES         |  |               LOGGER               |
-  |                                            |  |                Sohan               |
-  |  • ALU & Arithmetic Computation            |  |  • Structured Event Recording      |
-  |  • Memory & Data Transformation Execution  |  |  • Timestamped IPC Logs            |
-  |  • Process State Progression               |  |  • Error & Anomaly Trapping        |
-  |  • Result Emission via Pipe                |  |  • File Persistence (sim_audit.log)|
-  +--------------------------------------------+  +------------------------------------+
-                        │
-                        │ Pipe / IPC  [res_pipe: write(fd[1])]
-                        ▼
-  +------------------------------------------------------------------------------------+
-  |                    SYSTEM OUTPUT / PERFORMANCE DATA                                |
-  |  • Throughput (ops/sec)    • Latency (microseconds)    • Exit Code Verification    |
-  +------------------------------------------------------------------------------------+
+### Student 1 – Pipes and Message Queues
+**Tasks:**
+- Implement parent-child communication using anonymous POSIX pipes (`pipe()`, `fork()`, `read()`, `write()`).
+- Implement POSIX message queues with priority handling (`mq_open()`, `mq_send()`, `mq_receive()`, `mq_unlink()`).
+- Demonstrate data boundaries and priority inversion prevention.
+- Handle file descriptors, EOF conditions, and error cleanup.
+
+**Files:**
+- `src/pipes.c`
+- `include/pipes.h`
+- `src/message_queue.c`
+- `include/message_queue.h`
+
+### Student 2 – Sockets and Shared Memory
+**Tasks:**
+- Implement stream socket communication (`socket()`, `bind()`, `listen()`, `accept()`, `connect()`).
+- Demonstrate client-server duplex request/response handshakes.
+- Implement POSIX shared memory (`shm_open()`, `ftruncate()`, `mmap()`, `munmap()`, `shm_unlink()`).
+- Demonstrate high-performance zero-copy data exchange.
+- Handle connection teardown and shared memory deallocation.
+
+**Files:**
+- `src/sockets.c`
+- `include/sockets.h`
+- `src/shared_memory.c`
+- `include/shared_memory.h`
+
+### Student 3 – Semaphores and Mutex Locks
+**Tasks:**
+- Implement POSIX semaphores (`sem_init()`, `sem_wait()`, `sem_post()`, `sem_destroy()`).
+- Demonstrate process/thread synchronization and show counter corruption when unsynchronized.
+- Implement POSIX mutexes (`pthread_mutex_init()`, `pthread_mutex_lock()`, `pthread_mutex_unlock()`).
+- Demonstrate mutual exclusion on a shared bank account simulation with `pthread_mutex_trylock()`.
+- Prevent race conditions and protect critical sections.
+
+**Files:**
+- `src/semaphores.c`
+- `include/semaphores.h`
+- `src/mutex.c`
+- `include/mutex.h`
+
+### Student 4 – Integration, GUI and Main Application
+**Tasks:**
+- Architect the shared integration contract and function prototypes.
+- Collect and verify source modules from all team members.
+- Implement the interactive console menu interface (`main.c`).
+- Implement the simple Graphical User Interface in C (`gui.c`, `gui.h`).
+- Maintain the Web UI dashboard bridge (`ui/server.py`, `ui/public/`).
+- Create and maintain the automated build system (`Makefile`, `run.sh`).
+- Perform system-wide regression testing and documentation.
+
+**Files:**
+- `src/main.c`
+- `src/gui.c`
+- `include/gui.h`
+- `Makefile`
+- `run.sh`
+- `README.md`
+
+---
+
+## 3. Project Folder Structure
+
+```text
+CodeX-PBL-week2/
+├── README.md                      # Comprehensive project documentation
+├── Makefile                       # Automated build script (Linux & MinGW)
+├── run.sh                         # Multi-mode launcher (CLI, GUI, Web, Test)
+│
+├── src/                           # C source implementations
+│   ├── main.c                     # Menu-driven integrated application
+│   ├── gui.c                      # Simple GUI implementation in pure C
+│   ├── pipes.c                    # Student 1: POSIX Pipes implementation
+│   ├── message_queue.c            # Student 1: POSIX Message Queue implementation
+│   ├── sockets.c                  # Student 2: Stream Sockets implementation
+│   ├── shared_memory.c            # Student 2: POSIX Shared Memory implementation
+│   ├── semaphores.c               # Student 3: POSIX Semaphores implementation
+│   └── mutex.c                    # Student 3: POSIX Mutex Locks implementation
+│
+├── include/                       # Modular header interfaces
+│   ├── pipes.h
+│   ├── message_queue.h
+│   ├── sockets.h
+│   ├── shared_memory.h
+│   ├── semaphores.h
+│   ├── mutex.h
+│   └── gui.h
+│
+├── ui/                            # Interactive Web Dashboard
+│   ├── server.py                  # Python HTTP & REST API bridge
+│   └── public/
+│       ├── index.html             # Dashboard frontend
+│       ├── app.js                 # Dynamic event dispatcher
+│       └── style.css              # Dark theme modern stylesheet
+│
+└── screenshots/                   # Execution screenshots & verification
 ```
 
 ---
 
-## 7. Architecture Explanation
+## 4. System Architecture
 
-1. **Topology Initialization:** Prior to creating any child processes, the **Integration Layer** invokes the `pipe()` system call to allocate pipe descriptors (`cmd_pipe`, `ui_resp_pipe`, `log_pipe`). Because file descriptors are preserved across `fork()`, all child processes inherit access to the communication channels.
-2. **Descriptor Boundary Pruning:** Immediately after each process is forked, unused ends of pipes are closed. For example, the UI closes the read end of `cmd_pipe[0]` and retains write end `cmd_pipe[1]`. This ensures unidirectional flow and guarantees that readers detect an End-Of-File (EOF) when the writer terminates.
-3. **Core Orchestration:** The Core Process acts as the central hub. It reads incoming command packets from the UI, delegates tasks by spawning worker processes, establishes worker-specific pipes, and routes telemetry packets to the Logger.
-4. **Isolated Logging Daemon:** The Logger reads structured binary log packets from `log_pipe[0]`. It operates asynchronously, buffering and writing timestamped log entries to disk without stalling simulation tasks.
-5. **Integration & Coordination:** The Team Leader layer coordinates startup ordering, handles process cleanup via `waitpid()`, monitors pipe status flags, and ensures a clean shutdown sequence.
+```text
+===================================================================================
+                       POSIX IPC DEMONSTRATOR ARCHITECTURE
+===================================================================================
 
-
-## 8. IPC Using Pipes
-
-This simulator relies exclusively on **UNIX Pipes** for inter-process communication:
-
-* **What is a Pipe?**
-  A pipe is a unidirectional data channel managed within operating system kernel space. It is referenced by an array of two file descriptors: `fd[0]` for reading and `fd[1]` for writing. Data written to `fd[1]` is held in a FIFO kernel buffer (typically 64 KB on Linux) until read from `fd[0]`.
-* **Why Pipes Were Selected:**
-  1. *Kernel-Level Isolation:* Pipes preserve memory address boundaries without requiring shared virtual memory.
-  2. *Automatic Synchronization:* A reading process automatically blocks on an empty pipe, eliminating busy-waiting loops.
-  3. *Atomic Writes:* Writes under `PIPE_BUF` (4,096 bytes) are guaranteed to be atomic by the kernel, preventing data interleaving.
-  4. *Clean End-of-Stream Handling:* Closing the write end sends an EOF to the reader, enabling clean shutdown handshakes.
-* **How a Pipe is Created:**
-  ```c
-  int pipe_fd[2];
-  if (pipe(pipe_fd) < 0) {
-      perror("Failed to create kernel pipe");
-      exit(EXIT_FAILURE);
-  }
-  // pipe_fd[0] is read end; pipe_fd[1] is write end
-  ```
-* **Writing Data to the Pipe:**
-  ```c
-  CommandPacket packet = { .opcode = CMD_EXECUTE_TASK, .operand1 = 100, .operand2 = 250 };
-  ssize_t bytes_written = write(cmd_pipe[1], &packet, sizeof(CommandPacket));
-  ```
-* **Reading Data from the Pipe:**
-  ```c
-  CommandPacket packet;
-  ssize_t bytes_read = read(cmd_pipe[0], &packet, sizeof(CommandPacket));
-  if (bytes_read == 0) {
-      // EOF detected: writer has closed its descriptor
-  }
-  ```
-* **How Pipe Communication is Displayed in the UI:**
-  The UI displays the active read/write file descriptors, total bytes transferred, buffer queue status, and transmission states (`IDLE`, `TRANSMITTING`, `BLOCKED`, `CLOSED`).
-* **How Pipe Communication is Recorded by the Logger:**
-  Every pipe read and write event emits a structured log packet over `log_pipe`. The Logger logs the sending process PID, target channel, timestamp, payload size, and opcode to `sim_audit.log`.
+                               +--------------------+
+                               |     USER INPUT     |
+                               +--------------------+
+                                 /        |        \
+                                /         |         \
+                               v          v          v
+                       +-------------+ +---------+ +-----------+
+                       | C CLI Menu  | |  C GUI  | |  Web GUI  |
+                       |  (main.c)   | | (gui.c) | |(server.py)|
+                       +-------------+ +---------+ +-----------+
+                                \         |         /
+                                 \        |        /
+                                  v       v       v
+                       +-------------------------------+
+                       |    STUDENT 4 INTEGRATION      |
+                       +-------------------------------+
+                         /            |              \
+                        /             |               \
+                       v              v                v
+      +-------------------+  +-------------------+  +-------------------+
+      |     STUDENT 1     |  |     STUDENT 2     |  |     STUDENT 3     |
+      |-------------------|  |-------------------|  |-------------------|
+      | • Pipes (pipe)    |  | • Sockets (TCP)   |  | • Semaphores (sem)|
+      | • Message Queues  |  | • Shared Memory   |  | • Mutexes (mutex) |
+      +-------------------+  +-------------------+  +-------------------+
+```
 
 ---
 
-## 9. Team Responsibilities
+## 5. Function Naming Conventions
 
-| Member | Role | Key Deliverables & Responsibilities |
-|---|---|---|
-| **Bathin** | **UI Process** | Terminal dashboard, user command parser, live process table display, real-time pipe status view. |
-| **Dhanush** | **Core Process** | Central simulation loop, dynamic worker process creation, pipe IPC management, task execution, synchronization. |
-| **Sohan** | **Logger** | Asynchronous logging daemon, telemetry pipe consumer, timestamp formatting, file persistence (`sim_audit.log`). |
-| **Disha Naveen** | **Team Leader / Integration** | Overall architecture, pipe lifecycle management, wire protocol specification, deadlock prevention, system integration testing. |
+Each module exports clean, standardized functions called from `main.c` and `gui.c`:
 
+```c
+/* Standard Menu Execution Signatures */
+void run_pipes(void);
+void run_message_queue(void);
+void run_sockets(void);
+void run_shared_memory(void);
+void run_semaphores(void);
+void run_mutex(void);
 
-## 10. Performance Monitoring
-
-| Performance Metric | Observed Empirical Measurement |
-|---|---|
-| **Pipe Round-Trip Latency (UI -> Core)** | 14.2 microseconds (mean) |
-| **Worker Dispatch & Reaping Latency** | 185.6 microseconds |
-| **Peak Pipe Transmission Throughput** | 312 MB/second (kernel memory copy) |
-| **Event Logging Throughput** | 48,200 log messages/second |
-| **Memory Footprint (All 4 Processes Combined)** | < 8.4 MB Resident Set Size (RSS) |
-| **CPU Utilization Under Stress** | 12.4% (balanced across CPU cores) |
-
-## 11. Challenges and Solutions
-
-1. **Pipeline Deadlocks:**
-   * *Problem:* Both parent and child processes blocked waiting for data on empty pipes.
-   * *Solution:* Enforced strict closure of unused pipe ends (`close(fd)`) immediately following every `fork()`, ensuring `read()` returns EOF when the sender finishes.
-2. **Abrupt Termination on Broken Pipe (`SIGPIPE`):**
-   * *Problem:* When a child process terminated unexpectedly, the parent received an unhandled `SIGPIPE` signal upon writing, crashing the program.
-   * *Solution:* Configured `signal(SIGPIPE, SIG_IGN)` to ignore the default termination behavior and handled the `EPIPE` error return value gracefully in code.
-3. **Zombie Process Accumulation:**
-   * *Problem:* Completed worker processes accumulated in the process table while the Core remained busy handling UI requests.
-   * *Solution:* Implemented non-blocking `waitpid(-1, &status, WNOHANG)` checks inside the main simulation loop.
-4. **Partial Reads on Stream Pipes:**
-   * *Problem:* High-load bursts occasionally returned fewer bytes than requested in a single `read()` call.
-   * *Solution:* Implemented a `read_exact()` helper function that loops until the exact struct byte count is read from the pipe.
+/* Programmatic Execution Signatures (Used by GUI and Web Bridge) */
+int execute_pipes_demo(const char *msg, char *out_buf, size_t out_len);
+int execute_message_queue_demo(const char *msg, int prio, char *out_buf, size_t out_len);
+int execute_sockets_demo(const char *msg, char *out_buf, size_t out_len);
+int execute_shared_memory_demo(const char *msg, char *out_buf, size_t out_len);
+int execute_semaphores_demo(int workers, int iters, char *out_buf, size_t out_len);
+int execute_mutex_demo(int threads, int ops, char *out_buf, size_t out_len);
+```
 
 ---
 
-## 12. Final Demonstration
+## 6. Compilation and Execution
 
-* **Compilation & Startup:** The system compiles cleanly with `gcc -Wall -Wextra` without warnings. Executing the binary launches the Logger daemon, initializes the Core, and renders the live UI console.
-* **Interactive Command Execution:** The evaluator inputs arithmetic or simulation commands (e.g., `ADD 450 920`). The UI dashboard updates in real time, showing worker processes transitioning from READY to RUNNING to TERMINATED.
-* **Log Verification:** Viewing `sim_audit.log` in real time demonstrates timestamped entries for command transmission, worker dispatch, result emission, and child reaping.
-* **Clean System Exit:** Selecting the exit command sends a `CMD_SHUTDOWN` packet across the command pipe, prompting the Core and Logger to close their descriptors, reap remaining processes, and exit with code `0`.
+### Prerequisites
+- **Linux / Ubuntu / WSL:**
+  ```bash
+  sudo apt update
+  sudo apt install build-essential python3
+  ```
+- **Windows:** MinGW GCC (`gcc` version ≥ 7.0)
+
+### 1. Build the Application
+```bash
+make all
+```
+
+### 2. Run the Interactive Console Menu
+```bash
+# On Linux / WSL:
+./ipc_project
+
+# On Windows:
+.\ipc_project.exe
+```
+
+The interactive menu will display:
+```text
+========================================
+       IPC USING POSIX MECHANISMS       
+========================================
+
+1. Pipes
+2. Message Queues
+3. Sockets
+4. Shared Memory
+5. Semaphores
+6. Mutex Locks
+7. Graphical User Interface (Simple GUI in C)
+8. Exit
+
+Enter your choice:
+```
+
+### 3. Launch the Simple GUI in C
+```bash
+# Direct GUI invocation flag:
+./ipc_project --gui
+# Or:
+make gui
+```
+- On **Windows**: Opens a native Win32 window with 8 control buttons, status indicators, and an embedded real-time output console.
+- On **Linux**: Opens an interactive ANSI-rendered full-color visual terminal dashboard.
+
+### 4. Launch the Web UI Dashboard
+```bash
+# Start server:
+python3 ui/server.py
+# Or using the launcher script:
+./run.sh web
+```
+Open **`http://localhost:8080`** in any web browser to execute any of the 6 IPC tests with live parameter inputs and scrolling telemetry logs!
+
+### 5. Run Automated Verification Tests
+```bash
+make test
+# Or:
+./ipc_project -a
+```
 
 ---
 
-## 13. Conclusion
+## 7. IPC Mechanism Details & Testing Strategy
 
-The **Week 4 Multi-Process Simulator & IPC** project demonstrates the practical application of inter-process communication using **UNIX Pipes**. By decomposing the system into distinct operational modules—the **UI Process (Bathin)**, the **Core Process (Dhanush)**, the **Logger (Sohan)**, and the **Integration Layer (Disha Naveen)**—the project achieves:
-* Strict process address space isolation and reliable lifecycle management.
-* High-throughput, deadlock-free inter-process data exchange using kernel pipes.
-* Real-time monitoring and decoupled event logging.
+| IPC Mechanism | System Calls Used | Scope | Speed | Key Characteristic Demonstrated |
+|---|---|---|---|---|
+| **Pipes** | `pipe()`, `fork()`, `read()`, `write()`, `waitpid()` | Parent-Child | Fast | Kernel-buffered stream, automatic reader blocking, clean EOF. |
+| **Message Queues** | `mq_open()`, `mq_send()`, `mq_receive()`, `mq_unlink()` | System-wide | Fast | Discrete message boundaries with strict priority-based dequeuing. |
+| **Sockets** | `socket()`, `bind()`, `listen()`, `accept()`, `connect()` | Local / Network | Medium | Full-duplex client-server connection over loopback stream. |
+| **Shared Memory** | `shm_open()`, `ftruncate()`, `mmap()`, `munmap()` | System-wide | Maximum | Direct RAM mapping with zero kernel data-copy overhead. |
+| **Semaphores** | `sem_init()`, `sem_wait()`, `sem_post()`, `sem_destroy()` | Threads/Processes | Very Fast | Protects shared variables; verifies 0 lost updates vs corrupted unsynced counter. |
+| **Mutex Locks** | `pthread_mutex_init()`, `lock()`, `trylock()`, `unlock()` | Threads/Processes | Very Fast | Strict mutual exclusion on financial balance with non-blocking polling. |
 
-The implementation confirms that pipe-based IPC offers a dependable, low-overhead mechanism for building multi-process applications in POSIX-compliant environments.
-* Real-time monitoring and decoupled event logging.
+---
 
-The implementation confirms that pipe-based IPC offers a dependable, low-overhead mechanism for building multi-process applications in POSIX-compliant environments.
+## 8. Expected Output
+
+When running the automated test suite (`./ipc_project -a`), the system produces the following sample execution log:
+
+```text
+>>> EXECUTING ALL 6 POSIX IPC MECHANISMS <<<
+
+[Student 1: Pipes Module]
+[1] Creating anonymous unidirectional pipe using pipe()...
+[+] Pipe created. Read FD: 3, Write FD: 4
+[2] Simulating independent process context via POSIX thread...
+[+] Writer process wrote 47 bytes into the kernel pipe.
+[3] Reader process successfully retrieved message:
+    --> "POSIX Pipe Data: System Telemetry Packet #1042"
+[+] POSIX Pipe IPC Demonstration Completed Successfully.
+
+[Student 1: Message Queue Module]
+[1] Configuring POSIX Message Queue: /ipc_posix_demo_queue
+[+] POSIX Message Queue initialized (Max: 10, Size: 256 bytes).
+[2] Dispatching messages with varied priority levels...
+    [Enqueued] (Prio:  1) "Msg #1: Routine telemetry heartbeat"
+    [Enqueued] (Prio:  5) "Msg #2: Core process memory stats update"
+    [Enqueued] (Prio: 10) "URGENT: Core Engine High-Priority Trigger"
+[3] Receiving messages from queue (demonstrating priority sorting)...
+    [Dequeued #1] (Prio: 10, 41 bytes) -> "URGENT: Core Engine High-Priority Trigger"
+    [Dequeued #2] (Prio:  5, 40 bytes) -> "Msg #2: Core process memory stats update"
+    [Dequeued #3] (Prio:  1, 35 bytes) -> "Msg #1: Routine telemetry heartbeat"
+[4] Notice: High priority (10) dequeued first even though sent last!
+
+[Student 2: Sockets Module]
+[1] Starting Socket Server on localhost loopback (127.0.0.1)...
+[+] Server listening on 127.0.0.1:50870.
+[2] Creating Client socket and connecting to server...
+[+] Connection established with server.
+[3] Client transmitting payload: "Client: Telemetry Request Packet #2001"
+[4] Client received reply from server: "ACK: Server processed packet (38 bytes)"
+[5] Socket connection closed cleanly.
+
+[Student 2: Shared Memory Module]
+[1] Creating Shared Memory Object: /ipc_posix_demo_shm
+[+] Shared memory segment (304 bytes) mapped into address space.
+[2] Writer writing structured payload directly into memory block...
+    [Written] TxID: 9001 | Payload: "High-Speed Matrix State: 1024x1024 Float Buffer"
+[3] Reader accessing shared memory directly without kernel copy...
+    [Read Back] TxID: 9001 | Data: "High-Speed Matrix State: 1024x1024 Float Buffer"
+[4] Advantage: Zero-copy inter-process data exchange!
+
+[Student 3: Semaphores Module]
+[Configuration] 4 concurrent workers, 25000 increments each (Expected: 100000)
+[Experiment 1: Unsynchronized Concurrent Access]
+    --> Final Unsafe Counter: 100000 / 100000
+[Experiment 2: POSIX Semaphore Synchronized Access]
+    --> Final Synchronized Counter: 100000 / 100000
+    --> Result: 100% DETERMINISTIC AND CORRECT!
+
+[Student 3: Mutex Locks Module]
+[Scenario] Shared Bank Account ($10000.00 initial balance, 4 threads, 10000 ops)
+[Experiment 1: Without Mutex Lock Protection]
+    --> Final Balance: $10150.00 (Discrepancy: +150.00)
+    --> Status: RACE CONDITION CORRUPTED BALANCE
+[Experiment 2: With POSIX Mutex Lock (pthread_mutex_lock)]
+    --> Final Balance: $10000.00 (Discrepancy: $0.00)
+    --> Status: 100% ACCURATE (Mutual Exclusion Preserved!)
+[+] pthread_mutex_trylock() tested: Successfully acquired non-blocking lock.
+
+[+] All 6 IPC demonstrations completed successfully.
+```
+
+---
+
+## 9. Deliverables Checklist
+
+- [x] Student 1: POSIX Pipes implementation (`src/pipes.c`, `include/pipes.h`)
+- [x] Student 1: POSIX Message Queue implementation (`src/message_queue.c`, `include/message_queue.h`)
+- [x] Student 2: Stream Sockets implementation (`src/sockets.c`, `include/sockets.h`)
+- [x] Student 2: POSIX Shared Memory implementation (`src/shared_memory.c`, `include/shared_memory.h`)
+- [x] Student 3: POSIX Semaphores implementation (`src/semaphores.c`, `include/semaphores.h`)
+- [x] Student 3: POSIX Mutex Locks implementation (`src/mutex.c`, `include/mutex.h`)
+- [x] Student 4: Integrated Menu Application (`src/main.c`)
+- [x] Student 4: Simple C Graphical User Interface (`src/gui.c`, `include/gui.h`)
+- [x] Student 4: Web UI Dashboard & Bridge (`ui/server.py`, `ui/public/`)
+- [x] Build System (`Makefile`, `run.sh`)
+- [x] Full System Verification & Regression Tests
+
+---
+
+## 10. Conclusion
+
+This project integrates all six foundational POSIX IPC mechanisms into an educational, modular C software suite. By dividing work cleanly among 4 team members and integrating both a console interface and graphical interfaces (native C GUI + Web UI), the project provides hands-on practical mastery over concurrent process communication, resource synchronization, and operating systems engineering.

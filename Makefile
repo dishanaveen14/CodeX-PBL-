@@ -1,51 +1,60 @@
-# Makefile for CodeX-PBL OS Simulation (IPC Addition Demo)
+# ==============================================================================
+# Makefile for POSIX Inter-Process Communication (IPC) Project
+#
+# Team Members & Responsibilities:
+#   - Student 1: Pipes and Message Queues (src/pipes.c, src/message_queue.c)
+#   - Student 2: Sockets and Shared Memory (src/sockets.c, src/shared_memory.c)
+#   - Student 3: Semaphores and Mutex Locks (src/semaphores.c, src/mutex.c)
+#   - Student 4: Integration and Main Application (src/main.c, src/gui.c, src/ipc_logger.c)
+# ==============================================================================
 
 CC      := gcc
-CFLAGS  := -Wall -Wextra -O2 -pthread
-LDFLAGS := -lrt
+CFLAGS  := -Wall -Wextra -O2 -pthread -Iinclude
+TARGET  := ipc_project
 BUILD   := build
 
-all: $(BUILD)/logger $(BUILD)/core/core $(BUILD)/tests/test_sender
+# Detect OS
+ifeq ($(OS),Windows_NT)
+    TARGET  := ipc_project.exe
+    LDFLAGS := -pthread -lws2_32 -lgdi32 -lcomctl32
+    RM      := del /Q /F
+    MKDIR   := if not exist $(BUILD) mkdir $(BUILD)
+else
+    TARGET  := ipc_project
+    LDFLAGS := -pthread -lrt
+    RM      := rm -rf
+    MKDIR   := mkdir -p $(BUILD)
+endif
 
-# -------------------------------------------------------------------------
-# Logger Process
-# -------------------------------------------------------------------------
-$(BUILD)/logger: logger/logger_main.c
-	mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+SRCS := src/ipc_logger.c \
+        src/pipes.c \
+        src/message_queue.c \
+        src/sockets.c \
+        src/shared_memory.c \
+        src/semaphores.c \
+        src/mutex.c \
+        src/gui.c \
+        src/main.c
 
-# -------------------------------------------------------------------------
-# Core Process
-# -------------------------------------------------------------------------
-$(BUILD)/core/core: core/core_main.c
-	mkdir -p $(BUILD)/core
-	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+all: $(TARGET)
 
-# -------------------------------------------------------------------------
-# Tests / Tools
-# -------------------------------------------------------------------------
-$(BUILD)/tests/test_sender: tests/test_sender.c
-	mkdir -p $(BUILD)/tests
-	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+$(TARGET): $(SRCS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(BUILD)/tests/test_logger_flood: tests/test_logger_flood.c
-	mkdir -p $(BUILD)/tests
-	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+run: $(TARGET)
+	./$(TARGET)
 
-$(BUILD)/tests/test_logger_bad: tests/test_logger_bad.c
-	mkdir -p $(BUILD)/tests
-	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+gui: $(TARGET)
+	./$(TARGET) --gui
 
-tests: $(BUILD)/tests/test_logger_flood $(BUILD)/tests/test_logger_bad
-
-test: tests
-	@echo "--- Running Logger robustness test ---"
-	./$(BUILD)/tests/test_logger_bad
-	@echo "--- Running Logger flood test ---"
-	./$(BUILD)/tests/test_logger_flood
+test: $(TARGET)
+	./$(TARGET) -a
 
 clean:
-	rm -rf $(BUILD)
-	rm -f sim.log*
+ifeq ($(OS),Windows_NT)
+	-$(RM) $(TARGET) *.o 2>nul
+else
+	$(RM) $(TARGET) *.o $(BUILD)
+endif
 
-.PHONY: all clean tests test
+.PHONY: all run gui test clean

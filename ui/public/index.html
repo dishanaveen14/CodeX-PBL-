@@ -1,55 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeX-PBL IPC Addition</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>POSIX IPC Mechanisms Simulator</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <header>
-        <div class="logo">CodeX-PBL <span>IPC Addition</span></div>
-        <div class="status-bar">
-            <span class="badge ok" id="logger-status">Logger: Active</span>
+    <header class="app-header">
+        <div class="header-left">
+            <div class="logo-badge">POSIX IPC</div>
+            <div>
+                <h1>Inter-Process Communication Simulator</h1>
+                <p class="subtitle">Operating Systems Project | C & POSIX System Calls | Live Telemetry</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="badge team-badge">Team of 4</span>
+            <span class="badge live-badge" id="backend-status">C Engine: Ready</span>
+            <button class="btn btn-primary" onclick="runAllTests()">⚡ Run All 6 Tests</button>
         </div>
     </header>
 
-    <main class="dashboard">
-        <!-- IPC Addition -->
-        <section class="card module-ipc">
-            <h2>IPC Fork/Pipe Addition Demo</h2>
-            <p class="module-desc">
-                Process 1 owns Number 1. Process 2 owns Number 2. 
-                Process 2 sends its number to Process 1 via a POSIX pipe, 
-                and Process 1 computes the sum.
-            </p>
-            <div class="controls">
-                <div class="input-group">
-                    <label for="ipc-num1">Number 1 (Process 1)</label>
-                    <input type="number" class="input-field" id="ipc-num1" placeholder="Enter first number...">
-                </div>
-                <div class="input-group">
-                    <label for="ipc-num2">Number 2 (Process 2)</label>
-                    <input type="number" class="input-field" id="ipc-num2" placeholder="Enter second number...">
-                </div>
-                <button class="primary" id="btn-add" onclick="execIPC()">Add Numbers</button>
-            </div>
-            <div class="ipc-status" id="ipc-status">Waiting for input...</div>
-            <div id="ipc-feedback" class="feedback"></div>
-        </section>
+    <div class="main-layout">
+        <!-- Mechanism Cards Grid -->
+        <main class="grid-container">
 
-        <!-- Logger Feed -->
-        <section class="card module-logger">
-            <div class="card-header-row">
-                <h2>System Log (sim.log)</h2>
-                <button class="secondary btn-sm" onclick="clearLogs()">Clear Log</button>
+            <!-- Card 1: Pipes -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="owner-pill pill-p1">Student 1</span>
+                        <h3>1. POSIX Anonymous Pipes</h3>
+                    </div>
+                    <span class="tech-tag">pipe() / fork()</span>
+                </div>
+                <p class="card-desc">Child writes Number 2 into kernel pipe, Parent reads and computes sum with Number 1.</p>
+                <div class="input-row flex-gap">
+                    <input type="number" id="pipe-num1" class="input-text" placeholder="Num 1 (Parent)" value="15">
+                    <input type="number" id="pipe-num2" class="input-text" placeholder="Num 2 (Child)" value="25">
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-action" onclick="runMech('PIPES', 'pipe-num1', 'pipe-num2')">Execute Pipe IPC</button>
+                    <span class="status-indicator" id="stat-PIPES">Ready</span>
+                </div>
             </div>
-            <div class="log-container" id="log-feed">
-                <!-- Logs will be populated here -->
+
+            <!-- Card 2: Message Queues -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="owner-pill pill-p1">Student 1</span>
+                        <h3>2. POSIX Message Queues</h3>
+                    </div>
+                    <span class="tech-tag">mq_send() / mq_receive()</span>
+                </div>
+                <p class="card-desc">Typed messages with strict kernel priority sorting (highest priority dequeued first).</p>
+                <div class="input-row flex-gap">
+                    <input type="text" id="mq-msg" class="input-text flex-grow" placeholder="Enter message text..." value="CRITICAL: Overheat Trigger">
+                    <select id="mq-prio" class="select-field" style="width: 140px;">
+                        <option value="10" selected>Prio: 10 (Urgent)</option>
+                        <option value="5">Prio: 5 (Normal)</option>
+                        <option value="1">Prio: 1 (Low)</option>
+                    </select>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-action" onclick="runMech('MQ', 'mq-msg', 'mq-prio')">Test Priority
+                        Queue</button>
+                    <span class="status-indicator" id="stat-MQ">Ready</span>
+                </div>
             </div>
-        </section>
-    </main>
+
+            <!-- Card 3: Sockets -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="owner-pill pill-p2">Student 2</span>
+                        <h3>3. Stream Sockets</h3>
+                    </div>
+                    <span class="tech-tag">socket() / connect()</span>
+                </div>
+                <p class="card-desc">Client-server duplex communication over loopback TCP (127.0.0.1) with ACK response.</p>
+                <div class="input-row">
+                    <input type="text" id="sock-msg" class="input-text" placeholder="Client query payload..." value="QUERY_CORE_METRICS_STATUS">
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-action" onclick="runMech('SOCKETS', 'sock-msg')">Send Socket Stream</button>
+                    <span class="status-indicator" id="stat-SOCKETS">Ready</span>
+                </div>
+            </div>
+
+            <!-- Card 4: Shared Memory -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="owner-pill pill-p2">Student 2</span>
+                        <h3>4. POSIX Shared Memory</h3>
+                    </div>
+                    <span class="tech-tag">shm_open() / mmap()</span>
+                </div>
+                <p class="card-desc">Zero-copy direct memory access mapped directly into RAM pages.</p>
+                <div class="input-row flex-gap">
+                    <input type="text" id="shm-msg" class="input-text flex-grow" placeholder="Payload text..." value="Matrix State: 1024x1024 Buffer">
+                    <input type="number" id="shm-tx" class="input-text" placeholder="TxID" value="9001" style="width: 100px;">
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-action" onclick="runMech('SHM', 'shm-msg', 'shm-tx')">Map & Read RAM</button>
+                    <span class="status-indicator" id="stat-SHM">Ready</span>
+                </div>
+            </div>
+
+            <!-- Card 5: Semaphores -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="owner-pill pill-p3">Student 3</span>
+                        <h3>5. POSIX Semaphores</h3>
+                    </div>
+                    <span class="tech-tag">sem_wait() / sem_post()</span>
+                </div>
+                <p class="card-desc">Synchronizes concurrent threads on a shared counter, demonstrating race condition vs safe lock.</p>
+                <div class="input-row flex-gap">
+                    <input type="number" id="sem-workers" class="input-text" placeholder="Workers" value="4" min="2" max="8" style="width: 100px;">
+                    <input type="number" id="sem-iters" class="input-text flex-grow" placeholder="Iterations" value="25000" min="1000" max="50000">
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-action" onclick="runMech('SEM', 'sem-workers', 'sem-iters')">Test
+                        Synchronization</button>
+                    <span class="status-indicator" id="stat-SEM">Ready</span>
+                </div>
+            </div>
+
+            <!-- Card 6: Mutex Locks -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="owner-pill pill-p3">Student 3</span>
+                        <h3>6. POSIX Mutex Locks</h3>
+                    </div>
+                    <span class="tech-tag">pthread_mutex_lock()</span>
+                </div>
+                <p class="card-desc">Guards concurrent bank account transactions, contrasting balance corruption vs mutual exclusion.</p>
+                <div class="input-row flex-gap">
+                    <input type="number" id="mutex-bal" class="input-text" placeholder="Start Balance" value="10000" style="width: 120px;">
+                    <input type="number" id="mutex-ops" class="input-text flex-grow" placeholder="Tx / thread" value="10000" min="1000" max="25000">
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-action" onclick="runMech('MUTEX', 'mutex-bal', 'mutex-ops')">Run Bank Mutex Test</button>
+                    <span class="status-indicator" id="stat-MUTEX">Ready</span>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Right Console & System Telemetry Log View -->
+        <aside class="console-sidebar">
+            <div class="console-header">
+                <div class="console-title">
+                    <span class="terminal-dot red"></span>
+                    <span class="terminal-dot yellow"></span>
+                    <span class="terminal-dot green"></span>
+                    <span>System Execution & Audit Log (sim.log)</span>
+                </div>
+                <button class="btn btn-sm btn-outline" onclick="clearLogs()">Clear Log</button>
+            </div>
+            <div class="terminal-window" id="terminal-feed">
+                <div class="terminal-line text-muted">[System] POSIX IPC Simulator Web Interface Loaded.</div>
+                <div class="terminal-line text-muted">[System] Connected to C backend engine (ipc_project).</div>
+                <div class="terminal-line text-muted">[System] Enter parameters and click any mechanism button to execute.</div>
+            </div>
+        </aside>
+    </div>
+
     <script src="app.js"></script>
 </body>
+
 </html>
