@@ -294,7 +294,8 @@ body {
 
 .terminal-window {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     padding: 0.85rem 1.5rem;
     font-family: 'JetBrains Mono', 'Consolas', monospace;
     font-size: 0.8rem;
@@ -303,8 +304,9 @@ body {
 }
 
 .terminal-line {
-    white-space: pre-wrap;
-    word-break: break-all;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
     margin-bottom: 0.25rem;
     color: #cbd5e1;
     padding: 0.1rem 0;
@@ -316,3 +318,59 @@ body {
 .terminal-line.terminal-error { color: #f87171; }
 .terminal-line.terminal-warn { color: #fbbf24; }
 .text-muted { color: var(--text-muted); }
+
+/* Process Architecture & Roles Metadata Box */
+.proc-meta-box {
+    background-color: rgba(14, 21, 35, 0.8);
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    padding: 0.55rem 0.75rem;
+    margin: 0.5rem 0 0.75rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.proc-meta-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.75px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 0.2rem;
+    margin-bottom: 0.1rem;
+}
+
+.proc-role-item {
+    font-size: 0.73rem;
+    color: #cbd5e1;
+    line-height: 1.35;
+}
+
+.proc-role-item code {
+    background-color: #1e293b;
+    color: #38bdf8;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+}
+
+.proc-badge {
+    font-weight: 700;
+    font-size: 0.72rem;
+    margin-right: 0.25rem;
+}
+
+.proc-parent {
+    color: #60a5fa;
+}
+
+.proc-child {
+    color: #34d399;
+}
+
+.proc-channel {
+    color: #fbbf24;
+}

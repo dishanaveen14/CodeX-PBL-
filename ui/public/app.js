@@ -6,11 +6,24 @@
 let lastLogCount = 0;
 let isInitialLoad = true;
 
+const PROCESS_ROLES = {
+    PIPES: "[PROCESS ROLES & DATA FLOW: POSIX PIPES]\n• Process A (Parent): Creates pipe, forks child, closes write fd[1], reads sum from fd[0].\n• Process B (Child): Closes read fd[0], transmits integer payload into write fd[1], exits.\n• IPC Channel: Unidirectional kernel FIFO byte-stream pipe ring-buffer.",
+    MQ: "[PROCESS ROLES & DATA FLOW: POSIX MESSAGE QUEUES]\n• Process A (Sender): Connects to /posix_ipc_prio_queue, sets priority, calls mq_send().\n• Process B (Receiver): Listens on queue, calls mq_receive(), dequeues highest-priority message first.\n• IPC Channel: POSIX kernel priority queue structure.",
+    SOCKETS: "[PROCESS ROLES & DATA FLOW: STREAM SOCKETS]\n• Process A (TCP Server): Binds 127.0.0.1:9099, accepts client connection, returns ACK.\n• Process B (TCP Client): Transmits query stream over TCP socket, receives response.\n• IPC Channel: Full-duplex loopback stream socket (AF_INET / SOCK_STREAM).",
+    SHM: "[PROCESS ROLES & DATA FLOW: POSIX SHARED MEMORY]\n• Process A (Writer): Creates shm object via shm_open(), resizes with ftruncate(), maps with mmap(), writes data.\n• Process B (Reader): Opens shm object with shm_open(), maps with mmap(), reads directly from physical RAM.\n• IPC Channel: Zero-copy physical RAM pages shared across address spaces.",
+    SEM: "[PROCESS ROLES & DATA FLOW: POSIX SEMAPHORES]\n• Concurrent Threads: 4 worker threads performing 25,000 parallel increments on shared counter.\n• Synchronization: sem_wait() (lock) before critical section; sem_post() (unlock) on exit.\n• IPC Channel: POSIX counting semaphore (sem_t) kernel primitive.",
+    MUTEX: "[PROCESS ROLES & DATA FLOW: POSIX MUTEX LOCKS]\n• Concurrent Threads: 4 bank transaction threads performing parallel deposits & withdrawals.\n• Synchronization: pthread_mutex_lock() ensures mutual exclusion, preventing balance corruption.\n• IPC Channel: POSIX mutual exclusion lock (pthread_mutex_t)."
+};
+
 async function runMech(mech, arg1Id, arg2Id) {
     const statEl = document.getElementById(`stat-${mech}`);
     if (statEl) {
         statEl.textContent = 'Running...';
         statEl.className = 'status-indicator running';
+    }
+
+    if (PROCESS_ROLES[mech]) {
+        appendTerminalOutput(`\n${PROCESS_ROLES[mech]}`);
     }
 
     const val1 = arg1Id ? document.getElementById(arg1Id)?.value || '' : '';

@@ -41,6 +41,14 @@
                     <span class="tech-tag">pipe() / fork()</span>
                 </div>
                 <p class="card-desc">Child writes Number 2 into kernel pipe, Parent reads and computes sum with Number 1.</p>
+                
+                <div class="proc-meta-box">
+                    <div class="proc-meta-title">PROCESS ROLES & DATA FLOW</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-parent">Process A (Parent):</span> Creates pipe, forks child, closes write fd[1], reads payload from fd[0], computes sum.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-child">Process B (Child):</span> Closes read fd[0], writes value into write fd[1], terminates cleanly.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-channel">IPC Channel:</span> Unidirectional Linux kernel FIFO byte-stream pipe ring-buffer.</div>
+                </div>
+
                 <div class="input-row flex-gap">
                     <input type="number" id="pipe-num1" class="input-text" placeholder="Num 1 (Parent)" value="15">
                     <input type="number" id="pipe-num2" class="input-text" placeholder="Num 2 (Child)" value="25">
@@ -61,6 +69,14 @@
                     <span class="tech-tag">mq_send() / mq_receive()</span>
                 </div>
                 <p class="card-desc">Typed messages with strict kernel priority sorting (highest priority dequeued first).</p>
+
+                <div class="proc-meta-box">
+                    <div class="proc-meta-title">PROCESS ROLES & DATA FLOW</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-parent">Process A (Sender):</span> Opens <code>/posix_ipc_prio_queue</code>, attaches message payload + priority (1-10), calls <code>mq_send()</code>.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-child">Process B (Receiver):</span> Listens on queue, calls <code>mq_receive()</code>, retrieves highest-priority message first.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-channel">IPC Channel:</span> POSIX message queue kernel structure with priority-ordered queueing.</div>
+                </div>
+
                 <div class="input-row flex-gap">
                     <input type="text" id="mq-msg" class="input-text flex-grow" placeholder="Enter message text..." value="CRITICAL: Overheat Trigger">
                     <select id="mq-prio" class="select-field" style="width: 140px;">
@@ -70,8 +86,7 @@
                     </select>
                 </div>
                 <div class="card-footer">
-                    <button class="btn btn-action" onclick="runMech('MQ', 'mq-msg', 'mq-prio')">Test Priority
-                        Queue</button>
+                    <button class="btn btn-action" onclick="runMech('MQ', 'mq-msg', 'mq-prio')">Test Priority Queue</button>
                     <span class="status-indicator" id="stat-MQ">Ready</span>
                 </div>
             </div>
@@ -86,6 +101,14 @@
                     <span class="tech-tag">socket() / connect()</span>
                 </div>
                 <p class="card-desc">Client-server duplex communication over loopback TCP (127.0.0.1) with ACK response.</p>
+
+                <div class="proc-meta-box">
+                    <div class="proc-meta-title">PROCESS ROLES & DATA FLOW</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-parent">Process A (TCP Server):</span> Binds to <code>127.0.0.1:9099</code>, listens, accepts client stream, returns ACK response.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-child">Process B (TCP Client):</span> Connects to server, transmits query string payload, receives processed reply.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-channel">IPC Channel:</span> Full-duplex loopback stream socket (AF_INET / SOCK_STREAM).</div>
+                </div>
+
                 <div class="input-row">
                     <input type="text" id="sock-msg" class="input-text" placeholder="Client query payload..." value="QUERY_CORE_METRICS_STATUS">
                 </div>
@@ -105,6 +128,14 @@
                     <span class="tech-tag">shm_open() / mmap()</span>
                 </div>
                 <p class="card-desc">Zero-copy direct memory access mapped directly into RAM pages.</p>
+
+                <div class="proc-meta-box">
+                    <div class="proc-meta-title">PROCESS ROLES & DATA FLOW</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-parent">Process A (Writer):</span> Creates shm object via <code>shm_open()</code>, sizes via <code>ftruncate()</code>, maps via <code>mmap()</code>, writes memory.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-child">Process B (Reader):</span> Opens shm object with <code>shm_open()</code>, maps with <code>mmap()</code>, reads directly from physical RAM.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-channel">IPC Channel:</span> Shared physical RAM pages mapped into virtual address space (zero-copy).</div>
+                </div>
+
                 <div class="input-row flex-gap">
                     <input type="text" id="shm-msg" class="input-text flex-grow" placeholder="Payload text..." value="Matrix State: 1024x1024 Buffer">
                     <input type="number" id="shm-tx" class="input-text" placeholder="TxID" value="9001" style="width: 100px;">
@@ -125,13 +156,20 @@
                     <span class="tech-tag">sem_wait() / sem_post()</span>
                 </div>
                 <p class="card-desc">Synchronizes concurrent threads on a shared counter, demonstrating race condition vs safe lock.</p>
+
+                <div class="proc-meta-box">
+                    <div class="proc-meta-title">PROCESS ROLES & DATA FLOW</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-parent">Worker Threads (1..4):</span> 4 concurrent threads competing to increment a shared counter 25,000 times each.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-child">Synchronization:</span> Atomic <code>sem_wait()</code> decrements lock before entering, <code>sem_post()</code> increments on exit.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-channel">IPC Channel:</span> POSIX counting semaphore (<code>sem_t</code>) kernel synchronization primitive.</div>
+                </div>
+
                 <div class="input-row flex-gap">
                     <input type="number" id="sem-workers" class="input-text" placeholder="Workers" value="4" min="2" max="8" style="width: 100px;">
                     <input type="number" id="sem-iters" class="input-text flex-grow" placeholder="Iterations" value="25000" min="1000" max="50000">
                 </div>
                 <div class="card-footer">
-                    <button class="btn btn-action" onclick="runMech('SEM', 'sem-workers', 'sem-iters')">Test
-                        Synchronization</button>
+                    <button class="btn btn-action" onclick="runMech('SEM', 'sem-workers', 'sem-iters')">Test Synchronization</button>
                     <span class="status-indicator" id="stat-SEM">Ready</span>
                 </div>
             </div>
@@ -146,6 +184,14 @@
                     <span class="tech-tag">pthread_mutex_lock()</span>
                 </div>
                 <p class="card-desc">Guards concurrent bank account transactions, contrasting balance corruption vs mutual exclusion.</p>
+
+                <div class="proc-meta-box">
+                    <div class="proc-meta-title">PROCESS ROLES & DATA FLOW</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-parent">Bank Threads (1..4):</span> 4 parallel threads performing high-frequency deposits and withdrawals.</div>
+                    <div class="proc-role-item"><span class="proc-child proc-badge">Synchronization:</span> <code>pthread_mutex_lock()</code> enforces mutual exclusion, preventing corrupted balances.</div>
+                    <div class="proc-role-item"><span class="proc-badge proc-channel">IPC Channel:</span> POSIX mutual exclusion lock (<code>pthread_mutex_t</code>) backed by atomic instructions.</div>
+                </div>
+
                 <div class="input-row flex-gap">
                     <input type="number" id="mutex-bal" class="input-text" placeholder="Start Balance" value="10000" style="width: 120px;">
                     <input type="number" id="mutex-ops" class="input-text flex-grow" placeholder="Tx / thread" value="10000" min="1000" max="25000">
@@ -158,20 +204,21 @@
 
         </main>
 
-        <!-- Right Console & System Telemetry Log View -->
+        <!-- Right Console & System Telemetry Log View (Vertical Scroll Only) -->
         <aside class="console-sidebar">
             <div class="console-header">
                 <div class="console-title">
                     <span class="terminal-dot red"></span>
                     <span class="terminal-dot yellow"></span>
                     <span class="terminal-dot green"></span>
-                    <span>System Execution & Audit Log (sim.log)</span>
+                    <span>System Execution & Audit Log (sim.log) - Vertical Telemetry Feed</span>
                 </div>
                 <button class="btn btn-sm btn-outline" onclick="clearLogs()">Clear Log</button>
             </div>
             <div class="terminal-window" id="terminal-feed">
                 <div class="terminal-line text-muted">[System] POSIX IPC Simulator Web Interface Loaded.</div>
                 <div class="terminal-line text-muted">[System] Connected to C backend engine (ipc_project).</div>
+                <div class="terminal-line text-muted">[System] Log feed configured for pure vertical scrolling with line wrapping.</div>
                 <div class="terminal-line text-muted">[System] Enter parameters and click any mechanism button to execute.</div>
             </div>
         </aside>
